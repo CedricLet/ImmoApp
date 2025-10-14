@@ -1,12 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { AuthService } from '../../auth/auth.service';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-header',
-  imports: [MatToolbarModule, MatIconModule, MatButtonModule, RouterModule],
+  imports: [MatToolbarModule, MatIconModule, MatButtonModule, RouterModule, MatMenuModule],
   styles: [
     `
       header {
@@ -37,10 +39,36 @@ import { RouterModule } from '@angular/router';
           ImmoApp
         </h2>
         <span class="spacer"></span>
+        @if (authService.isLoggedIn()) {
+        <button mat-icon-button aria-label="Profile" color="primary" [matMenuTriggerFor]="menu">
+          <mat-icon>account_circle</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="goToProfile()">
+            <mat-icon>person</mat-icon>
+            <span>Profil</span>
+          </button>
+
+          <button mat-menu-item (click)="authService.logout()">
+            <mat-icon>logout</mat-icon>
+            <span style="color: red;">Déconnexion</span>
+          </button>
+        </mat-menu>
+
+        } @else {
         <button matButton [routerLink]="'/connexion'">Se connecter</button>
         <button [routerLink]="'/signup'" matButton="filled" color="primary">S'inscrire</button>
+        }
       </mat-toolbar>
     </header>
   `,
 })
-export class HeaderComponent {}
+export class HeaderComponent {
+  authService = inject(AuthService);
+
+  constructor(private router: Router) {}
+
+  goToProfile() {
+    this.router.navigate(['/profile']);
+  }
+}

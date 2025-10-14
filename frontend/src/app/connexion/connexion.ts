@@ -4,6 +4,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { Validators, ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { AuthService } from '../auth/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-connexion',
@@ -54,6 +56,10 @@ import { MatIconModule } from '@angular/material/icon';
 
         <button [disabled]="form.invalid" matButton="filled" color="primary">Se connecter</button>
 
+        @if (invalidCredentials()) {
+        <p class="center" style="color: red;">Informations invalides! Veuillez réessayer.</p>
+        }
+
         <a class="center" href="">Mot de passe oublié ?</a>
       </form>
     </div>
@@ -61,6 +67,9 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class ConnexionComponent {
   private formBuilder = inject(FormBuilder);
+  private authService = inject(AuthService);
+
+  constructor(private router: Router) {}
 
   form = this.formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
@@ -68,8 +77,21 @@ export class ConnexionComponent {
   });
 
   hidePassword = signal(true);
+  invalidCredentials = signal(false);
 
   onSubmit() {
-    // La soumission du formulaire est gérée ici
+    const { email, password } = this.form.value;
+
+    this.authService.login(email!, password!).subscribe({
+      next: (response) => {
+        console.log('Connecté !', response);
+        this.invalidCredentials.set(false);
+        this.router.navigate(['/']);
+      },
+      error: (err) => {
+        console.error('Erreur connexion', err);
+        this.invalidCredentials.set(true);
+      },
+    });
   }
 }

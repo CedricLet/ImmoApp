@@ -6,6 +6,8 @@ import { SignupComponent } from './signup/signup';
 import { ProfileComponent } from './profile/profile';
 import { RealEstateListComponent } from './real-estate-list/real-estate-list';
 import { PropertyInfoComponent } from './property-info/property-info';
+import { NoAuthGuard } from './auth/no-auth.guard';
+import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -13,11 +15,11 @@ export const routes: Routes = [
     component: LayoutComponent,
     children: [
       { path: '', component: HomeComponent },
-      { path: 'connexion', component: ConnexionComponent },
-      { path: 'signup', component: SignupComponent },
-      { path: 'profile', component: ProfileComponent },
-      { path: 'real-estate-list', component: RealEstateListComponent },
-      { path: 'property-info', component: PropertyInfoComponent },
+      { path: 'connexion', component: ConnexionComponent, canActivate: [NoAuthGuard] },
+      { path: 'signup', component: SignupComponent, canActivate: [NoAuthGuard] },
+      { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
+      { path: 'real-estate-list', component: RealEstateListComponent, canActivate: [authGuard] },
+      { path: 'property-info', component: PropertyInfoComponent, canActivate: [authGuard] },
     ],
   },
   { path: '**', redirectTo: '' },
