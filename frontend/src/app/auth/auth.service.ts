@@ -10,7 +10,7 @@ export class AuthService {
 
   login(email: string, password: string) {
     return this.http
-      .post<{ token: string }>(`${API_URL}/login`, { email, password })
+      .post<{ token: string }>(`${API_URL}/api/auth/login`, { email, password })
       .pipe(tap((res) => localStorage.setItem('jwt', res.token)));
   }
 
