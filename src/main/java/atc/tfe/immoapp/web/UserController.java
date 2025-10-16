@@ -1,5 +1,6 @@
 package atc.tfe.immoapp.web;
 
+import atc.tfe.immoapp.dto.mapper.UserDTO;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -9,6 +10,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,9 +26,11 @@ import jakarta.validation.Valid;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserController(UserRepository userRepository) {
+    public UserController(UserRepository userRepository,  PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping("/user")
@@ -39,8 +43,10 @@ public class UserController {
 
         String email = authentication.getName(); // name = email
         User user = userRepository.findByEmail(email);
-
-        return ResponseEntity.ok(user);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        return getUserDTOResponseEntity(user);
     }
 
     @PostMapping("/user")
@@ -53,14 +59,21 @@ public class UserController {
 
         String email = authentication.getName(); // name = email
         User user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
 
         user.setLastname(request.lastname());
         user.setFirstname(request.firstname());
         user.setPhone(request.phone());
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
+        return getUserDTOResponseEntity(user);
+    }
 
-        return ResponseEntity.ok(user);
+    private static ResponseEntity<UserDTO> getUserDTOResponseEntity(User user) {
+        UserDTO userDTO = new UserDTO(user.getLastname(), user.getFirstname(), user.getEmail(), user.getPhone(), user.getUserType());
+        return ResponseEntity.ok(userDTO);
     }
 
     @PostMapping("/user/password")
@@ -73,13 +86,17 @@ public class UserController {
 
         String email = authentication.getName(); // name = email
         User user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
 
         if (!request.newPassword().equals(request.validateNewPassword())) {
             return ResponseEntity.status(400).body("The two passwords are not the same");
         }
 
-        String hashedPassword = new BCryptPasswordEncoder().encode(request.newPassword());
-        user.setPasswordHash(hashedPassword);
+        //String hashedPassword = new BCryptPasswordEncoder().encode(request.newPassword());
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setUpdatedAt(Instant.now());
         userRepository.save(user);
 
         return ResponseEntity.ok(Map.of("message", "The password has been modified"));

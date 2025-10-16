@@ -13,7 +13,6 @@ import java.time.Instant;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,11 +49,11 @@ public class AuthController {
             return ResponseEntity.status(500).body("L'email est déjà réservé à un autre user.");
         }
 
-        String hashedPassword = new BCryptPasswordEncoder().encode(request.password());
+        //String hashedPassword = new BCryptPasswordEncoder().encode(request.password());
 
         User newUser = new User();
         newUser.setEmail(request.email());
-        newUser.setPasswordHash(hashedPassword);
+        newUser.setPasswordHash(passwordEncoder.encode(request.password()));
         newUser.setLastname(request.lastname());
         newUser.setFirstname(request.firstname());
         newUser.setPhone(request.phone());

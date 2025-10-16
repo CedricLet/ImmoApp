@@ -24,7 +24,7 @@ import atc.tfe.immoapp.filter.JwtRequestFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
-        private final JwtRequestFilter jwtRequestFilter;
+    private final JwtRequestFilter jwtRequestFilter;
 
     public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
         this.jwtRequestFilter = jwtRequestFilter;
