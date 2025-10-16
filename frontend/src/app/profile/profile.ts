@@ -5,7 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
-import { FormsModule } from '@angular/forms';
+import { FormGroup, FormsModule } from '@angular/forms';
 import {
   Validators,
   ReactiveFormsModule,
@@ -14,6 +14,12 @@ import {
   ValidationErrors,
   ValidatorFn,
 } from '@angular/forms';
+import { UserService } from '../user/user.service';
+import { User } from '../user/user';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { HttpClient } from '@angular/common/http';
+import { API_URL } from '../constants';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-profile',
@@ -27,6 +33,8 @@ import {
     MatIconModule,
     MatRadioModule,
     FormsModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
   ],
   styles: [``],
   template: `
@@ -35,8 +43,12 @@ import {
 
       <div class="card columns w-100" style="padding: 3rem;">
         <div class="row" style="justify-content: space-between;">
+          @if (loading()) {
+          <mat-spinner></mat-spinner>
+          } @else {
           <div class="column">
             <span style="font-size: 1.2rem;">Informations sur l'utilisateur:</span>
+
             <form [formGroup]="form">
               <label for="">Nom: </label>
               @if (editMode()) {
@@ -48,7 +60,7 @@ import {
                 }
               </mat-form-field>
               } @else {
-              <span>{{ user.lastname }}</span>
+              <span>{{ user?.lastname }}</span>
               }
 
               <br />
@@ -63,13 +75,13 @@ import {
                 }
               </mat-form-field>
               } @else {
-              <span>{{ user.firstname }}</span>
+              <span>{{ user?.firstname }}</span>
               }
 
               <br />
 
               <label for="">Email: </label>
-              <span>{{ user.email }}</span>
+              <span>{{ user?.email }}</span>
 
               <br />
 
@@ -80,7 +92,7 @@ import {
                 <input
                   type="text"
                   matInput
-                  formControlName="phoneNumber"
+                  formControlName="phone"
                   placeholder="Ex. 0477 08 09 44"
                 />
                 @if (form.get('phoneNumber')?.hasError('required')) {
@@ -88,13 +100,13 @@ import {
                 }
               </mat-form-field>
               } @else {
-              <span>{{ user.phoneNumber }}</span>
+              <span>{{ user?.phone }}</span>
               }
 
               <br />
 
-              <label for="">Statut: </label>
-              <span>{{ user.userStatus }}</span>
+              <label for="">Type: </label>
+              <span>{{ user?.userType }}</span>
             </form>
           </div>
           @if (editMode()) {
@@ -112,37 +124,16 @@ import {
           </div>
           } @else {
           <button (click)="editMode.set(true)" matButton="filled" color="primary">Modifier</button>
-          }
+          } }
         </div>
 
         <mat-divider style="margin: 3rem 0rem;"></mat-divider>
 
         <div class="row" style="justify-content: space-between;">
+          @if (passworLoading()) {
+          <mat-spinner></mat-spinner>
+          } @else {
           <form [formGroup]="passwordForm">
-            <mat-form-field>
-              <mat-label>Mot de passe actuel</mat-label>
-              <input
-                [type]="hidePassword() ? 'password' : 'text'"
-                matInput
-                formControlName="oldPassword"
-              />
-              <button
-                type="button"
-                mat-icon-button
-                matSuffix
-                (click)="hidePassword.set(!hidePassword())"
-                [attr.aria-label]="'Toggle password visibility'"
-                [attr.aria-pressed]="!hidePassword()"
-              >
-                <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-              @if (passwordForm.get('oldPassword')?.hasError('required')) {
-              <mat-error>Le mot de passe est <strong>obligatoire</strong></mat-error>
-              }
-            </mat-form-field>
-
-            <br />
-
             <mat-form-field>
               <mat-label>Nouveau mot de passe</mat-label>
               <input
@@ -162,8 +153,32 @@ import {
               </button>
               @if (passwordForm.get('newPassword')?.hasError('required')) {
               <mat-error>Le mot de passe est <strong>obligatoire</strong></mat-error>
-              } @if (passwordForm.get('newPassword')?.hasError('samePassword')) {
-              <mat-error>Les 2 mots de passe doivent être <strong>identique</strong></mat-error>
+              }
+            </mat-form-field>
+
+            <br />
+
+            <mat-form-field>
+              <mat-label>Valider nouveau mot de passe</mat-label>
+              <input
+                [type]="hidePassword() ? 'password' : 'text'"
+                matInput
+                formControlName="validateNewPassword"
+              />
+              <button
+                type="button"
+                mat-icon-button
+                matSuffix
+                (click)="hidePassword.set(!hidePassword())"
+                [attr.aria-label]="'Toggle password visibility'"
+                [attr.aria-pressed]="!hidePassword()"
+              >
+                <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (passwordForm.get('validateNewPassword')?.hasError('required')) {
+              <mat-error>Le mot de passe est <strong>obligatoire</strong></mat-error>
+              } @if (!similarPasswords()) {
+              <p style="color: red;">Les 2 mots de passe doivent être <strong>identique</strong></p>
               }
             </mat-form-field>
           </form>
@@ -180,56 +195,113 @@ import {
 
             <a class="center" href="">Mot de passe oublié ?</a>
           </div>
+          }
         </div>
       </div>
     </div>
   `,
 })
 export class ProfileComponent {
-  user = {
-    lastname: 'Dupont',
-    firstname: 'Jean',
-    email: 'dupont@gmail.com',
-    phoneNumber: '0477 89 07 21',
-    userStatus: 'particulier',
-  };
+  constructor(private http: HttpClient) {}
 
-  editMode = signal(false);
+  private snackBar = inject(MatSnackBar);
+
+  user: User | null = null;
 
   private formBuilder = inject(FormBuilder);
 
-  form = this.formBuilder.group({
-    lastname: [this.user.lastname, Validators.required],
-    firstname: [this.user.firstname, Validators.required],
-    phoneNumber: [this.user.phoneNumber, Validators.required],
+  form: FormGroup = this.formBuilder.group({
+    lastname: [''],
+    firstname: [''],
+    phone: [''],
   });
 
-  submitEdit() {}
+  loading = signal(true);
+
+  private userService = inject(UserService);
+
+  ngOnInit() {
+    this.userService.getUser().subscribe({
+      next: (data: User) => {
+        this.user = data;
+
+        this.form = this.formBuilder.group({
+          lastname: [this.user.lastname, Validators.required],
+          firstname: [this.user.firstname, Validators.required],
+          phone: [this.user.phone, Validators.required],
+        });
+
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Impossible de charger l’utilisateur', err);
+
+        this.loading.set(false);
+      },
+    });
+  }
+
+  editMode = signal(false);
+
+  submitEdit() {
+    this.loading.set(true);
+
+    this.http.post<User>(`${API_URL}/user`, this.form.value).subscribe({
+      next: (res) => {
+        this.form.patchValue({
+          lastname: res.lastname,
+          firstname: res.firstname,
+          phone: res.phone,
+        });
+
+        this.loading.set(false);
+
+        this.snackBar.open('Utilisateur mis à jour avec succès!', 'Fermer');
+      },
+      error: (error) => {
+        this.loading.set(false);
+
+        this.snackBar.open("Erreur lors de la mis à jour de l'utilisateur!", 'Fermer');
+      },
+    });
+  }
 
   hidePassword = signal(true);
 
-  samePasswordValidator(): ValidatorFn {
-    return (group: AbstractControl): ValidationErrors | null => {
-      const oldPassword = group.get('oldPassword')?.value;
-      const newPassword = group.get('newPassword')?.value;
-      if (!oldPassword || !newPassword) return null;
-      return oldPassword === newPassword ? { samePassword: true } : null;
-    };
-  }
+  similarPasswords = signal(true);
 
-  passwordForm = this.formBuilder.group(
-    {
-      oldPassword: ['', Validators.required],
-      newPassword: ['', Validators.required],
-    },
-    {
-      validators: this.samePasswordValidator(),
+  passworLoading = signal(false);
+
+  passwordForm = this.formBuilder.group({
+    newPassword: ['', Validators.required],
+    validateNewPassword: ['', Validators.required],
+  });
+
+  submitPassword() {
+    if (
+      this.passwordForm.get('newPassword')?.value !==
+      this.passwordForm.get('validateNewPassword')?.value
+    ) {
+      this.similarPasswords.set(false);
+      return;
     }
-  );
 
-  ngOnInit() {
-    console.log(this.passwordForm);
+    this.similarPasswords.set(true);
+    this.passworLoading.set(true);
+
+    this.http.post(`${API_URL}/user/password`, this.passwordForm.value).subscribe({
+      next: () => {
+        this.passwordForm.reset();
+
+        this.passworLoading.set(false);
+
+        this.snackBar.open('Mot de passe mis à jour avec succès!', 'Fermer');
+      },
+      error: () => {
+        this.passworLoading.set(false);
+
+        this.snackBar.open('Erreur lors de la mis à jour du mot de passe!', 'Fermer');
+      },
+    });
   }
-
-  submitPassword() {}
 }

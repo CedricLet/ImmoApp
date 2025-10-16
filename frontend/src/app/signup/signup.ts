@@ -6,6 +6,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { API_URL } from '../constants';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-signup',
@@ -31,6 +34,8 @@ import { FormsModule } from '@angular/forms';
           <mat-error>Entrez un adresse mail valide</mat-error>
           } @if (form.get('email')?.hasError('required')) {
           <mat-error>L'email est <strong>obligatoire</strong></mat-error>
+          } @if (userAlreadyExists()) {
+          <p style="color: red;">L'email est déjà réservé à un autre utilisateur</p>
           }
         </mat-form-field>
 
@@ -74,19 +79,14 @@ import { FormsModule } from '@angular/forms';
 
         <mat-form-field>
           <mat-label>Numéro de téléphone</mat-label>
-          <input
-            type="text"
-            matInput
-            formControlName="phoneNumber"
-            placeholder="Ex. 0477 08 09 44"
-          />
-          @if (form.get('phoneNumber')?.hasError('required')) {
+          <input type="text" matInput formControlName="phone" placeholder="Ex. 0477 08 09 44" />
+          @if (form.get('phone')?.hasError('required')) {
           <mat-error>Le numéro de téléphone est <strong>obligatoire</strong></mat-error>
           }
         </mat-form-field>
 
-        <mat-radio-group formControlName="userStatus" color="primary">
-          <mat-radio-button value="particulier">Particulier</mat-radio-button>
+        <mat-radio-group formControlName="userType" color="primary">
+          <mat-radio-button value="OWNER">Particulier</mat-radio-button>
           <mat-radio-button disabled="true" value="agentImmobilier"
             >Agent immobilier</mat-radio-button
           >
@@ -104,18 +104,32 @@ import { FormsModule } from '@angular/forms';
 export class SignupComponent {
   private formBuilder = inject(FormBuilder);
 
+  constructor(private http: HttpClient, private router: Router) {}
+
   form = this.formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
     lastname: ['', Validators.required],
     firstname: ['', Validators.required],
-    phoneNumber: ['', Validators.required],
-    userStatus: 'particulier',
+    phone: ['', Validators.required],
+    userType: 'OWNER',
   });
 
   hidePassword = signal(true);
+  userAlreadyExists = signal(false);
 
   onSubmit() {
-    // La soumission du formulaire est gérée ici
+    this.http.post<{ token: string }>(`${API_URL}/signup`, this.form.value).subscribe({
+      next: (res) => {
+        this.userAlreadyExists.set(false);
+        localStorage.setItem('jwt', res.token);
+        this.router.navigate(['/']);
+      },
+      error: (error) => {
+        if (error.status === 500) {
+          this.userAlreadyExists.set(true);
+        }
+      },
+    });
   }
 }
