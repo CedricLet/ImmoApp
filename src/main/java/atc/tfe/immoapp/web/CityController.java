@@ -1,7 +1,7 @@
 package atc.tfe.immoapp.web;
 
 import atc.tfe.immoapp.dto.mapper.CityDTO;
-import atc.tfe.immoapp.repositroy.CityRepository;
+import atc.tfe.immoapp.repository.CityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.GetMapping;
