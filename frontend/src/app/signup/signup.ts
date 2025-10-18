@@ -126,7 +126,7 @@ export class SignupComponent {
         this.router.navigate(['/']);
       },
       error: (error) => {
-        if (error.status === 500) {
+        if (error.status === 409) {
           this.userAlreadyExists.set(true);
         }
       },
