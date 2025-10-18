@@ -80,6 +80,7 @@ public class UserController {
 
         String hashedPassword = new BCryptPasswordEncoder().encode(request.newPassword());
         user.setPasswordHash(hashedPassword);
+        user.setUpdatedAt(Instant.now());
         userRepository.save(user);
 
         return ResponseEntity.ok(Map.of("message", "The password has been modified"));

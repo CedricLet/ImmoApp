@@ -17,7 +17,7 @@ import {
 import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 
 @Component({
-  selector: 'app-real-estate-list',
+  selector: 'app-property-list',
   imports: [
     MatDividerModule,
     MatButtonModule,
@@ -75,7 +75,7 @@ import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/p
     </div>
   `,
 })
-export class RealEstateListComponent {
+export class PropertyListComponent {
   properties = [
     {
       id: 1,

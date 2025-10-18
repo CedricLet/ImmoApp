@@ -157,6 +157,15 @@ import {
               </mat-form-field>
               } @else {
               <span>{{ property.country }}</span>
+              } @if (editMode()) {
+              <label for="image">Choisir une nouvelle image</label>
+              <input
+                id="image"
+                formControlName="image"
+                type="file"
+                accept="image/*"
+                (change)="onFileSelected($event)"
+              />
               }
             </form>
           </div>

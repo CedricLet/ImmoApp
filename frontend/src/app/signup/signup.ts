@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { API_URL } from '../constants';
 import { Router } from '@angular/router';
+import { UserType } from '../user/user';
 
 @Component({
   selector: 'app-signup',
@@ -112,7 +113,7 @@ export class SignupComponent {
     lastname: ['', Validators.required],
     firstname: ['', Validators.required],
     phone: ['', Validators.required],
-    userType: 'OWNER',
+    userType: UserType.OWNER,
   });
 
   hidePassword = signal(true);

@@ -4,10 +4,11 @@ import { HomeComponent } from './home/home';
 import { ConnexionComponent } from './connexion/connexion';
 import { SignupComponent } from './signup/signup';
 import { ProfileComponent } from './profile/profile';
-import { RealEstateListComponent } from './real-estate-list/real-estate-list';
-import { PropertyInfoComponent } from './property-info/property-info';
+import { PropertyListComponent } from './property/property-list/property-list';
+import { PropertyInfoComponent } from './property/property-info/property-info';
 import { NoAuthGuard } from './auth/no-auth.guard';
 import { authGuard } from './auth/auth.guard';
+import { PropertyAddComponent } from './property/property-add/property-add';
 
 export const routes: Routes = [
   {
@@ -18,8 +19,16 @@ export const routes: Routes = [
       { path: 'connexion', component: ConnexionComponent, canActivate: [NoAuthGuard] },
       { path: 'signup', component: SignupComponent, canActivate: [NoAuthGuard] },
       { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
-      { path: 'real-estate-list', component: RealEstateListComponent, canActivate: [authGuard] },
-      { path: 'property-info', component: PropertyInfoComponent, canActivate: [authGuard] },
+      {
+        path: 'property',
+        canActivate: [authGuard],
+        children: [
+          { path: 'list', component: PropertyListComponent, canActivate: [authGuard] },
+          { path: 'info', component: PropertyInfoComponent, canActivate: [authGuard] },
+          { path: 'add', component: PropertyAddComponent, canActivate: [authGuard] },
+          { path: '', redirectTo: 'list', pathMatch: 'full' },
+        ],
+      },
     ],
   },
   { path: '**', redirectTo: '' },
