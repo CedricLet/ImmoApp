@@ -11,8 +11,8 @@ import jakarta.validation.Valid;
 
 import java.time.Instant;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,10 +46,8 @@ public class AuthController {
     public ResponseEntity<?> signup(@Valid @RequestBody SignupDTO request) {
         User existingUser = userRepository.findByEmail(request.email());
         if (existingUser != null) {
-            return ResponseEntity.status(500).body("L'email est déjà réservé à un autre user.");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("L'email est déjà réservé à un autre user.");
         }
-
-        //String hashedPassword = new BCryptPasswordEncoder().encode(request.password());
 
         User newUser = new User();
         newUser.setEmail(request.email());
@@ -63,10 +61,10 @@ public class AuthController {
         newUser.setStatus(UserStatus.ACTIVE);
         userRepository.save(newUser);
 
-        User user = userRepository.findByEmail(request.email());
+        User saved = userRepository.save(newUser);
 
-        String token = jwtUtil.generateToken(user.getId(), user.getUserType().name(), user.getEmail());
-        return ResponseEntity.ok(new AuthResponseDTO(token));
+        String token = jwtUtil.generateToken(saved.getId(), saved.getUserType().name(), saved.getEmail());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponseDTO(token));
     }
 
     /*@GetMapping("/me")
