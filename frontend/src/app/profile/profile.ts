@@ -95,7 +95,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
                   formControlName="phone"
                   placeholder="Ex. 0477 08 09 44"
                 />
-                @if (form.get('phoneNumber')?.hasError('required')) {
+                @if (form.get('phone')?.hasError('required')) {
                 <mat-error>Le numéro de téléphone est <strong>obligatoire</strong></mat-error>
                 }
               </mat-form-field>
@@ -130,7 +130,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
         <mat-divider style="margin: 3rem 0rem;"></mat-divider>
 
         <div class="row" style="justify-content: space-between;">
-          @if (passworLoading()) {
+          @if (passwordLoading()) {
           <mat-spinner></mat-spinner>
           } @else {
           <form [formGroup]="passwordForm">
@@ -270,7 +270,7 @@ export class ProfileComponent {
 
   similarPasswords = signal(true);
 
-  passworLoading = signal(false);
+  passwordLoading = signal(false);
 
   passwordForm = this.formBuilder.group({
     newPassword: ['', Validators.required],
@@ -287,18 +287,18 @@ export class ProfileComponent {
     }
 
     this.similarPasswords.set(true);
-    this.passworLoading.set(true);
+    this.passwordLoading.set(true);
 
     this.http.post(`${API_URL}/user/password`, this.passwordForm.value).subscribe({
       next: () => {
         this.passwordForm.reset();
 
-        this.passworLoading.set(false);
+        this.passwordLoading.set(false);
 
         this.snackBar.open('Mot de passe mis à jour avec succès!', 'Fermer');
       },
       error: () => {
-        this.passworLoading.set(false);
+        this.passwordLoading.set(false);
 
         this.snackBar.open('Erreur lors de la mis à jour du mot de passe!', 'Fermer');
       },

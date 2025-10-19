@@ -16,8 +16,7 @@ import java.time.LocalDate;
 @Setter
 @Entity
 @Table(name = "leases", indexes = {
-        @Index(name = "idx_leases_property", columnList = "property_id"),
-        @Index(name = "idx_leases_tenant", columnList = "tenant_id")
+        @Index(name = "idx_leases_property", columnList = "property_id")
 })
 public class Lease {
     @Id
@@ -30,10 +29,17 @@ public class Lease {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
+    @Column(name = "tenant_full_name", nullable = false, length = 120)
+    private String tenantFullName;
+
+    @Column(name = "tenant_email", length = 255)
+    private String tenantEmail;
+
+    @Column(name = "tenant_phone", length = 30)
+    private String tenantPhone;
+
+    @Column(name = "tenant_notes", columnDefinition = "TEXT")
+    private String tenantNotes;
 
     @NotNull
     @Column(name = "start_date", nullable = false)
@@ -49,11 +55,6 @@ public class Lease {
     @NotNull
     @Column(name = "rent_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal rentAmount;
-
-    @Size(max = 3)
-    @NotNull
-    @Column(name = "currency", nullable = false, length = 3, columnDefinition = "CHAR(3)")
-    private String currency;
 
     @Column(name = "deposit_amount", precision = 10, scale = 2)
     private BigDecimal depositAmount;

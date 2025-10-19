@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,18 +29,22 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        final String header = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            String role = jwtUtil.extractRole(token);
+        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            try {
             String email = jwtUtil.extractEmail(token);
+                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    if (jwtUtil.validateToken(token, email)) {
+                        String role = jwtUtil.extractRole(token);
+                        String granted = role != null && role.startsWith("ROLE_") ? role : "ROLE_" + role;
 
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(email, null,
-                                List.of(new SimpleGrantedAuthority(role)));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                        var auth = new UsernamePasswordAuthenticationToken(email, null, List.of(new SimpleGrantedAuthority(granted)));
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
+                }
+            }catch (Exception ignored) {
             }
         }
 
