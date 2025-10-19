@@ -1,6 +1,6 @@
 export enum PropertyType {
   HOUSE,
-  APPARTEMENT,
+  APARTMENT,
   STUDIO,
   PARKING,
   CELLAR,
@@ -24,3 +24,27 @@ export enum ContextRole {
   TENANT,
   SYNDIC_READER,
 }
+
+export type Property = {
+  imagePath: string;
+  label: string;
+  propertyType: PropertyType;
+  propertyStatus: PropertyStatus;
+  street: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  contextRole: ContextRole;
+  yearBuilt: number;
+  surface: number;
+  pebScore: string;
+  notes: string;
+};
+
+export type Properties = {
+  id: number;
+  propertyType: PropertyType;
+  label: string;
+  city: string;
+  imagePath: string;
+};

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,6 +15,11 @@ import {
   ValidatorFn,
 } from '@angular/forms';
 import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { PropertyService } from '../property.service';
+import { HttpClient } from '@angular/common/http';
+import { Properties } from '../property';
+import { Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-property-list',
@@ -29,6 +34,7 @@ import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/p
     MatRadioModule,
     FormsModule,
     MatPaginator,
+    RouterModule,
   ],
   styles: [``],
   template: `
@@ -38,10 +44,10 @@ import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/p
           <mat-form-field>
             <mat-label>Rechercher un bien</mat-label>
             <mat-icon matPrefix>search</mat-icon>
-            <input type="text" matInput />
+            <input type="text" matInput (input)="onSearchChange($event.target.value)" />
           </mat-form-field>
 
-          <button matButton="filled" color="primary">
+          <button [routerLink]="'/property/add'" matButton="filled" color="primary">
             <mat-icon>add</mat-icon>Ajouter un bien
           </button>
         </div>
@@ -51,10 +57,20 @@ import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/p
           class="row w-100 card gap-3"
           style="padding: 0rem 2rem; align-items: center; justify-content: space-between;"
         >
-          <img [src]="property.image" [alt]="property.label" style="width: 6rem; height: 6rem;" />
-          <span>{{ property.type }}</span>
+          <img
+            [src]="property.imagePath"
+            [alt]="property.label"
+            style="width: 6rem; height: 6rem;"
+          />
+          <span>{{ property.propertyType }}</span>
           <span>{{ property.label }}, {{ property.city }}</span>
-          <button matButton="outlined" color="primary">Voir détails</button>
+          <button
+            [routerLink]="'/property/info/' + property.id"
+            matButton="outlined"
+            color="primary"
+          >
+            Voir détails
+          </button>
         </div>
         } @empty {
         <p>Aucun élément trouvé.</p>
@@ -76,27 +92,41 @@ import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/p
   `,
 })
 export class PropertyListComponent {
-  properties = [
-    {
-      id: 1,
-      type: 'building',
-      label: 'La chancla',
-      city: 'Charleroi',
-      image: '/28525110-a-spoof-female-human-target-shape-isolated-on-white.jpg',
-    },
-    {
-      id: 2,
-      type: 'apartment',
-      label: 'La sourissière',
-      city: 'Marcinelle',
-      image: '/glock17.png',
-    },
-    { id: 3, type: 'house', label: 'La madre', city: 'Couillet', image: '/unnamed.jpg' },
-  ];
+  private propertyService = inject(PropertyService);
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+  constructor(private http: HttpClient, private router: Router) {}
+
+  properties: Properties[] | null = null;
 
   propertiesInfo = {
-    length: 30,
+    length: 0,
+    pageIndex: 0,
   };
 
-  handlePageEvent(event: PageEvent) {}
+  searchTerm = '';
+
+  loadProperties() {
+    this.propertyService
+      .getProperties(this.paginator.pageIndex, this.searchTerm)
+      .subscribe((res) => {
+        this.properties = res.content;
+        this.propertiesInfo.length = res.totalElements;
+      });
+  }
+
+  ngAfterViewInit() {
+    this.loadProperties();
+  }
+
+  handlePageEvent(event: PageEvent) {
+    this.propertiesInfo.pageIndex = event.pageIndex;
+    this.loadProperties();
+  }
+
+  onSearchChange(searchValue: string) {
+    this.searchTerm = searchValue;
+    this.propertiesInfo.pageIndex = 0;
+    this.loadProperties();
+  }
 }

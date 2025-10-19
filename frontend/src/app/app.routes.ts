@@ -24,7 +24,7 @@ export const routes: Routes = [
         canActivate: [authGuard],
         children: [
           { path: 'list', component: PropertyListComponent, canActivate: [authGuard] },
-          { path: 'info', component: PropertyInfoComponent, canActivate: [authGuard] },
+          { path: 'info/:id', component: PropertyInfoComponent, canActivate: [authGuard] },
           { path: 'add', component: PropertyAddComponent, canActivate: [authGuard] },
           { path: '', redirectTo: 'list', pathMatch: 'full' },
         ],

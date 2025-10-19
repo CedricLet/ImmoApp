@@ -2,7 +2,7 @@ package atc.tfe.immoapp.enums;
 
 public enum PropertyType {
     HOUSE,
-    APPARTEMENT,
+    APARTMENT,
     STUDIO,
     PARKING,
     CELLAR,
