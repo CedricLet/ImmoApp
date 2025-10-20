@@ -20,6 +20,7 @@ import { HttpClient } from '@angular/common/http';
 import { Properties } from '../property';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
+import {API_URL} from '../../constants';
 
 @Component({
   selector: 'app-property-list',
@@ -33,7 +34,7 @@ import { RouterModule } from '@angular/router';
     MatIconModule,
     MatRadioModule,
     FormsModule,
-    MatPaginator,
+    MatPaginatorModule,
     RouterModule,
   ],
   styles: [``],
@@ -44,36 +45,46 @@ import { RouterModule } from '@angular/router';
           <mat-form-field>
             <mat-label>Rechercher un bien</mat-label>
             <mat-icon matPrefix>search</mat-icon>
-            <input type="text" matInput (input)="onSearchChange($event.target.value)" />
+            <input type="text" matInput (input)="onSearchChange($any($event.target).value)"/>
           </mat-form-field>
 
           <button [routerLink]="'/property/add'" matButton="filled" color="primary">
-            <mat-icon>add</mat-icon>Ajouter un bien
+            <mat-icon>add</mat-icon>
+            Ajouter un bien
           </button>
         </div>
 
         @for (property of properties; track property.id) {
-        <div
-          class="row w-100 card gap-3"
-          style="padding: 0rem 2rem; align-items: center; justify-content: space-between;"
-        >
-          <img
-            [src]="property.imagePath"
-            [alt]="property.label"
-            style="width: 6rem; height: 6rem;"
-          />
-          <span>{{ property.propertyType }}</span>
-          <span>{{ property.label }}, {{ property.city }}</span>
-          <button
-            [routerLink]="'/property/info/' + property.id"
-            matButton="outlined"
-            color="primary"
+          <div
+            class="row w-100 card gap-3"
+            style="padding: 0rem 2rem; align-items: center; justify-content: space-between;"
           >
-            Voir détails
-          </button>
-        </div>
+            @if (property?.imagePath) {
+              <img
+                [src]="API_URL + '/' + property.imagePath"
+                [alt]="property.label"
+                style="width: 6rem; height: 6rem;"
+              />
+
+            } @else {
+              <div class="row center"
+                   style="width: 6rem; height: 6rem; border-radius: .5rem; background:#f3f4f6; align-items:center; justify-content:center;">
+                <mat-icon>image_not_supported</mat-icon>
+              </div>
+
+            }
+            <span>{{ property.propertyType }}</span>
+            <span>{{ property.label }}, {{ property.city }}</span>
+            <button
+              [routerLink]="'/property/info/' + property.id"
+              matButton="outlined"
+              color="primary"
+            >
+              Voir détails
+            </button>
+          </div>
         } @empty {
-        <p>Aucun élément trouvé.</p>
+          <p>Aucun élément trouvé.</p>
         }
 
         <mat-paginator
@@ -83,7 +94,7 @@ import { RouterModule } from '@angular/router';
           [length]="propertiesInfo.length"
           [pageSize]="10"
           [showFirstLastButtons]="true"
-          [pageIndex]="true"
+          [pageIndex]="propertiesInfo.pageIndex"
           aria-label="Select page"
         >
         </mat-paginator>
@@ -92,8 +103,8 @@ import { RouterModule } from '@angular/router';
   `,
 })
 export class PropertyListComponent {
-  private propertyService = inject(PropertyService);
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  private propertyService = inject(PropertyService);
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -129,4 +140,6 @@ export class PropertyListComponent {
     this.propertiesInfo.pageIndex = 0;
     this.loadProperties();
   }
+
+  protected readonly API_URL = API_URL;
 }

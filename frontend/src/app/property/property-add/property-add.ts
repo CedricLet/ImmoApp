@@ -82,7 +82,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
         <label for="image">Choisir une image</label>
         <input
           id="image"
-          formControlName="image"
           type="file"
           accept="image/*"
           (change)="onFileSelected($event)"
@@ -141,6 +140,9 @@ export class PropertyAddComponent {
 
   constructor(private http: HttpClient, private router: Router) {}
 
+  // Ajout
+  private selectedImage: File | null = null;
+
   propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
   propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
   contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
@@ -151,7 +153,9 @@ export class PropertyAddComponent {
     city: ['', Validators.required],
     propertyType: ['', Validators.required],
     label: ['', Validators.required],
-    image: [null, Validators.required],
+    //image: [null, Validators.required],
+    // Ajout champ factice pour gérer la validation/affichage du nom de fichier
+    imageName: [''],
     propertyStatus: ['', Validators.required],
     contextRole: ['', Validators.required],
     surface: [0, Validators.min(0)],
@@ -160,20 +164,43 @@ export class PropertyAddComponent {
     yearBuilt: [0, Validators.min(0)],
   });
 
+  // Ne plus patcher un File dans le form, mais un nom de fichier
   onFileSelected(event: any) {
-    this.form.patchValue({ image: event.target.files[0] });
+    const file = event.target?.files?.[0] ?? null;
+    this.selectedImage = file;
+    this.form.patchValue({ imageName: file ? file.name : '' });
   }
 
   onSubmit() {
     const formData = new FormData();
-    const formValue = this.form.value as any;
-    Object.keys(formValue).forEach((key) => {
+    const v = this.form.value as any;
+    /*Object.keys(formValue).forEach((key) => {
       if (key === 'image' && formValue.image) {
         formData.append(key, formValue.image); // fichier
       } else {
         formData.append(key, formValue[key]); // valeur du champ, pas tout l'objet
       }
-    });
+    });*/
+
+    // ADDED: joindre le fichier réel ici
+    if (this.selectedImage){
+      formData.append('image', this.selectedImage);
+    }
+
+    // CHANGED: on envoie les autres champs normalement
+    formData.append('street', v.street);
+    formData.append('postalCode', v.postalCode);
+    formData.append('city', v.city);
+    formData.append('propertyType', v.propertyType);
+    formData.append('label', v.label);
+    formData.append('propertyStatus', v.propertyStatus);
+    formData.append('contextRole', v.contextRole);
+    formData.append('surface', v.surface ?? '');
+    formData.append('notes', v.notes ?? '');
+    formData.append('pebScore', v.pebScore ?? '');
+    formData.append('yearBuilt', v.yearBuilt ?? '');
+
+
 
     this.http.post(`${API_URL}/property/add`, formData).subscribe({
       next: () => {
@@ -181,8 +208,9 @@ export class PropertyAddComponent {
         this.snackBar.open('Ajout de la propriété avec succès!', 'Fermer');
         this.router.navigate(['/property/list']);
       },
-      error: () => {
+      error: (err) => {
         this.snackBar.open("Erreur lors de l'ajout de la propriété!", 'Fermer');
+        console.error(err);
       },
     });
   }

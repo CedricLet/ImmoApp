@@ -63,12 +63,18 @@ import { MatSnackBar } from '@angular/material/snack-bar';
         </div>
 
         <div class="row gap-2">
-          <img
-            [src]="'http://localhost:8080/' + property?.imagePath"
-            [alt]="property?.label"
-            class="card"
-            style="width: 15rem; height: 15rem;"
-          />
+          @if (property?.imagePath) {
+            <img
+              [src]="API_URL + '/' + property?.imagePath"
+              [alt]="property?.label"
+              class="card"
+              style="width: 15rem; height: 15rem;"
+            />
+          } @else {
+            <div class="card row center" style="width: 15rem; height: 15rem; align-items:center; justify-content:center;">
+              <mat-icon>house</mat-icon>
+            </div>
+          }
 
           <div class="column card w-100" style="padding: 2rem;">
             <span style="font-size: 1.2rem;">Informations sur le bien:</span>
@@ -181,7 +187,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
               <label for="image">Choisir une nouvelle image</label>
               <input
                 id="image"
-                formControlName="image"
                 type="file"
                 accept="image/*"
                 (change)="onFileSelected($event)"
@@ -330,6 +335,30 @@ export class PropertyInfoComponent {
   private propertyService = inject(PropertyService);
 
   property: Property | null = null;
+  editMode = signal(false);
+
+  private selectedImage: File | null = null;
+
+  propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
+  propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
+  contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
+
+  private formBuilder = inject(FormBuilder);
+
+  form = this.formBuilder.group({
+    street: ['', Validators.required],
+    postalCode: ['', Validators.required],
+    city: ['', Validators.required],
+    propertyType: ['', Validators.required],
+    label: ['', Validators.required],
+    imageName: [''],
+    propertyStatus: ['', Validators.required],
+    contextRole: ['', Validators.required],
+    surface: [0, Validators.min(0)],
+    notes: [''],
+    pebScore: [''],
+    yearBuilt: [0, Validators.min(0)],
+  });
 
   ngOnInit() {
     this.propertyId = this.route.snapshot.paramMap.get('id')!;
@@ -340,29 +369,25 @@ export class PropertyInfoComponent {
 
         this.form.patchValue({
           label: prop.label,
-          propertyType: prop.propertyType,
-          propertyStatus: prop.propertyStatus,
+          propertyType: prop.propertyType as any,
+          propertyStatus: prop.propertyStatus as any,
           street: prop.street,
           postalCode: prop.postalCode,
           city: prop.city,
-          surface: prop.surface,
+          surface: prop.surface as any,
           notes: prop.notes,
           pebScore: prop.pebScore,
-          yearBuilt: prop.yearBuilt,
-          contextRole: prop.contextRole,
+          yearBuilt: prop.yearBuilt as any,
+          contextRole: prop.contextRole as any,
         });
       },
       error: (err) => console.error(err),
     });
   }
 
-  editMode = signal(false);
 
-  propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
-  propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
-  contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
 
-  private formBuilder = inject(FormBuilder);
+  /*private formBuilder = inject(FormBuilder);
 
   form = this.formBuilder.group({
     street: [this.property?.street, Validators.required],
@@ -377,16 +402,19 @@ export class PropertyInfoComponent {
     notes: [this.property?.notes],
     pebScore: [this.property?.pebScore],
     yearBuilt: [this.property?.yearBuilt, Validators.min(0)],
-  });
+  });*/
 
   onFileSelected(event: any) {
-    this.form.patchValue({ image: event.target.files[0] });
+    //this.form.patchValue({ image: event.target.files[0] });
+    const file = event.target?.files?.[0] ?? null;
+    this.selectedImage = file;                               // ADDED
+    this.form.patchValue({ imageName: file ? file.name : '' });
   }
 
   submitEdit() {
     const formData = new FormData();
-    const formValue = this.form.value as any;
-    Object.keys(formValue).forEach((key) => {
+    const v = this.form.value as any;
+    /*Object.keys(formValue).forEach((key) => {
       const value = formValue[key];
 
       // Si c'est le fichier, ajouter uniquement s'il y a un fichier
@@ -398,7 +426,23 @@ export class PropertyInfoComponent {
         // Ajouter les autres champs normalement, convertir null/undefined en string vide si besoin
         formData.append(key, value != null ? value : '');
       }
-    });
+    });*/
+
+    if (this.selectedImage) {
+      formData.append('image', this.selectedImage);
+    }
+
+    formData.append('street', v.street);
+    formData.append('postalCode', v.postalCode);
+    formData.append('city', v.city);
+    formData.append('propertyType', v.propertyType);
+    formData.append('label', v.label);
+    formData.append('propertyStatus', v.propertyStatus);
+    formData.append('contextRole', v.contextRole);
+    formData.append('surface', v.surface ?? '');
+    formData.append('notes', v.notes ?? '');
+    formData.append('pebScore', v.pebScore ?? '');
+    formData.append('yearBuilt', v.yearBuilt ?? '');
 
     this.http.post(`${API_URL}/property/modify/${this.propertyId}`, formData).subscribe({
       next: () => {
@@ -413,17 +457,19 @@ export class PropertyInfoComponent {
 
             this.form.patchValue({
               label: prop.label,
-              propertyType: prop.propertyType,
-              propertyStatus: prop.propertyStatus,
+              propertyType: prop.propertyType as any,
+              propertyStatus: prop.propertyStatus as any,
               street: prop.street,
               postalCode: prop.postalCode,
               city: prop.city,
-              surface: prop.surface,
+              surface: prop.surface as any,
               notes: prop.notes,
               pebScore: prop.pebScore,
-              yearBuilt: prop.yearBuilt,
-              contextRole: prop.contextRole,
+              yearBuilt: prop.yearBuilt as any,
+              contextRole: prop.contextRole as any,
+              imageName: ''
             });
+            this.selectedImage = null;
           },
           error: (err) => console.error(err),
         });
@@ -445,4 +491,6 @@ export class PropertyInfoComponent {
   });
 
   addTenant() {}
+
+  protected readonly API_URL = API_URL;
 }
