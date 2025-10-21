@@ -9,6 +9,7 @@ import { PropertyInfoComponent } from './property/property-info/property-info';
 import { NoAuthGuard } from './auth/no-auth.guard';
 import { authGuard } from './auth/auth.guard';
 import { PropertyAddComponent } from './property/property-add/property-add';
+import {PropertyDocumentComponent} from './property/property-document/property-document';
 
 export const routes: Routes = [
   {
@@ -26,6 +27,7 @@ export const routes: Routes = [
           { path: 'list', component: PropertyListComponent, canActivate: [authGuard] },
           { path: 'info/:id', component: PropertyInfoComponent, canActivate: [authGuard] },
           { path: 'add', component: PropertyAddComponent, canActivate: [authGuard] },
+          { path: 'document', component: PropertyDocumentComponent, canActivate: [authGuard]},
           { path: '', redirectTo: 'list', pathMatch: 'full' },
         ],
       },
