@@ -81,9 +81,6 @@ import { UserType } from '../user/user';
         <mat-form-field>
           <mat-label>Numéro de téléphone</mat-label>
           <input type="text" matInput formControlName="phone" placeholder="Ex. 0477 08 09 44" />
-          @if (form.get('phone')?.hasError('required')) {
-          <mat-error>Le numéro de téléphone est <strong>obligatoire</strong></mat-error>
-          }
         </mat-form-field>
 
         <mat-radio-group formControlName="userType" color="primary">
@@ -112,8 +109,8 @@ export class SignupComponent {
     password: ['', Validators.required],
     lastname: ['', Validators.required],
     firstname: ['', Validators.required],
-    phone: ['', Validators.required],
-    userType: UserType.OWNER,
+    phone: [''],
+    userType: 'OWNER',
   });
 
   hidePassword = signal(true);
@@ -127,7 +124,7 @@ export class SignupComponent {
         this.router.navigate(['/']);
       },
       error: (error) => {
-        if (error.status === 500) {
+        if (error.status === 409) {
           this.userAlreadyExists.set(true);
         }
       },

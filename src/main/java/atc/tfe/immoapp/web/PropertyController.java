@@ -40,8 +40,6 @@ import atc.tfe.immoapp.dto.mapper.AddPropertyDTO;
 import atc.tfe.immoapp.dto.mapper.ModifyPropertyDTO;
 import atc.tfe.immoapp.dto.mapper.PropertyInfoResponse;
 import atc.tfe.immoapp.dto.mapper.PropertyListDTO;
-import atc.tfe.immoapp.enums.PropertyStatus;
-import atc.tfe.immoapp.enums.PropertyType;
 import atc.tfe.immoapp.repository.AddressRepository;
 import atc.tfe.immoapp.repository.CityRepository;
 import atc.tfe.immoapp.repository.CountryRepository;
@@ -119,17 +117,18 @@ public class PropertyController {
         property.setPebScore(request.pebScore());
         property.setYearBuilt(request.yearBuilt());
 
-        String uploadDir = "uploads/property-images/";
-        Files.createDirectories(Paths.get(uploadDir)); // Crée le dossier si besoin
-
-        String uniqueFileName = UUID.randomUUID() + "_" + request.image().getOriginalFilename();
-        Path filePath = Paths.get(uploadDir, uniqueFileName);
-
-        // Sauvegarder le fichier
-        Files.copy(request.image().getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        if (request.image() != null && !request.image().isEmpty()) {
+            String uploadDir = "uploads/property-images/";
+            Files.createDirectories(Paths.get(uploadDir)); // Crée le dossier si besoin
+            String uniqueFileName = UUID.randomUUID() + "_" + request.image().getOriginalFilename();
+            Path filePath = Paths.get(uploadDir, uniqueFileName);
+            Files.copy(request.image().getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            property.setImagePath(uploadDir + uniqueFileName);
+        }else {
+            property.setImagePath(null);
+        }
 
         // Assigner le chemin dans Property
-        property.setImagePath(uploadDir + uniqueFileName);
         property.setCreatedAt(Instant.now());
         property.setUpdatedAt(Instant.now());
         propertyRepository.save(property);
@@ -243,7 +242,7 @@ public class PropertyController {
             String uniqueFileName = UUID.randomUUID() + "_" + request.image().getOriginalFilename();
             Path filePath = Paths.get(uploadDir, uniqueFileName);
             Files.copy(request.image().getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-        
+
             property.setImagePath(uploadDir + uniqueFileName);
         }
         

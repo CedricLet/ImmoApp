@@ -95,9 +95,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
                   formControlName="phone"
                   placeholder="Ex. 0477 08 09 44"
                 />
-                @if (form.get('phoneNumber')?.hasError('required')) {
-                <mat-error>Le numéro de téléphone est <strong>obligatoire</strong></mat-error>
-                }
               </mat-form-field>
               } @else {
               <span>{{ user?.phone }}</span>
@@ -130,7 +127,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
         <mat-divider style="margin: 3rem 0rem;"></mat-divider>
 
         <div class="row" style="justify-content: space-between;">
-          @if (passworLoading()) {
+          @if (passwordLoading()) {
           <mat-spinner></mat-spinner>
           } @else {
           <form [formGroup]="passwordForm">
@@ -192,8 +189,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
             >
               Modifier mot de passe
             </button>
-
-            <a class="center" href="">Mot de passe oublié ?</a>
           </div>
           }
         </div>
@@ -228,7 +223,7 @@ export class ProfileComponent {
         this.form = this.formBuilder.group({
           lastname: [this.user.lastname, Validators.required],
           firstname: [this.user.firstname, Validators.required],
-          phone: [this.user.phone, Validators.required],
+          phone: [this.user.phone],
         });
 
         this.loading.set(false);
@@ -248,6 +243,8 @@ export class ProfileComponent {
 
     this.http.post<User>(`${API_URL}/user`, this.form.value).subscribe({
       next: (res) => {
+        this.user = res;
+
         this.form.patchValue({
           lastname: res.lastname,
           firstname: res.firstname,
@@ -255,6 +252,8 @@ export class ProfileComponent {
         });
 
         this.loading.set(false);
+
+        this.editMode.set(false);
 
         this.snackBar.open('Utilisateur mis à jour avec succès!', 'Fermer');
       },
@@ -270,7 +269,7 @@ export class ProfileComponent {
 
   similarPasswords = signal(true);
 
-  passworLoading = signal(false);
+  passwordLoading = signal(false);
 
   passwordForm = this.formBuilder.group({
     newPassword: ['', Validators.required],
@@ -287,18 +286,18 @@ export class ProfileComponent {
     }
 
     this.similarPasswords.set(true);
-    this.passworLoading.set(true);
+    this.passwordLoading.set(true);
 
     this.http.post(`${API_URL}/user/password`, this.passwordForm.value).subscribe({
       next: () => {
         this.passwordForm.reset();
 
-        this.passworLoading.set(false);
+        this.passwordLoading.set(false);
 
         this.snackBar.open('Mot de passe mis à jour avec succès!', 'Fermer');
       },
       error: () => {
-        this.passworLoading.set(false);
+        this.passwordLoading.set(false);
 
         this.snackBar.open('Erreur lors de la mis à jour du mot de passe!', 'Fermer');
       },

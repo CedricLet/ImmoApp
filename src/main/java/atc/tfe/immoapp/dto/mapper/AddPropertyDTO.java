@@ -2,6 +2,7 @@ package atc.tfe.immoapp.dto.mapper;
 
 import java.math.BigDecimal;
 
+import io.micrometer.common.lang.Nullable;
 import org.springframework.web.multipart.MultipartFile;
 
 import atc.tfe.immoapp.enums.ContextRole;
@@ -16,7 +17,7 @@ public record AddPropertyDTO (
  @NotBlank String city,
  @NotNull PropertyType propertyType,
  @NotBlank String label,
- @NotNull MultipartFile image,
+ @Nullable MultipartFile image,
  @NotNull PropertyStatus propertyStatus,
  @NotNull ContextRole contextRole,
  BigDecimal surface,

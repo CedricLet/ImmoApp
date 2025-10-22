@@ -15,7 +15,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
        "WHERE up.user = :user AND (" +
        "LOWER(p.label) LIKE LOWER(CONCAT('%', :search, '%')) " +
        "OR LOWER(p.address.city.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-       "OR LOWER(p.propertyType) LIKE LOWER(CONCAT('%', :search, '%'))" +
+       "OR LOWER(CAST(p.propertyType AS STRING)) LIKE LOWER(CONCAT('%', :search, '%'))" +
        ")")
     Page<Property> searchProperties(@Param("search") String search, @Param("user") User user, Pageable pageable);
 

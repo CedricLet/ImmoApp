@@ -67,12 +67,21 @@ import { LeaseComponent } from '../../lease/lease';
         </div>
 
         <div class="row gap-2">
+          @if (property?.imagePath) {
           <img
-            [src]="'http://localhost:8080/' + property?.imagePath"
+            [src]="'${API_URL}' + '/' + property?.imagePath"
             [alt]="property?.label"
             class="card"
             style="width: 15rem; height: 15rem;"
           />
+          } @else {
+          <div
+            class="card row center"
+            style="width: 15rem; height: 15rem; align-items:center; justify-content:center;"
+          >
+            <mat-icon>house</mat-icon>
+          </div>
+          }
 
           <div class="column card w-100" style="padding: 2rem;">
             <span style="font-size: 1.2rem;">Informations sur le bien:</span>
@@ -183,13 +192,7 @@ import { LeaseComponent } from '../../lease/lease';
 
               @if (editMode()) {
               <label for="image">Choisir une nouvelle image</label>
-              <input
-                id="image"
-                formControlName="image"
-                type="file"
-                accept="image/*"
-                (change)="onFileSelected($event)"
-              />
+              <input id="image" type="file" accept="image/*" (change)="onFileSelected($event)" />
               }
             </form>
           </div>
@@ -267,6 +270,11 @@ export class PropertyInfoComponent {
   private propertyService = inject(PropertyService);
 
   property: Property | null = null;
+  editMode = signal(false);
+
+  propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
+  propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
+  contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
 
   loadProperty() {
     this.propertyService.getProperty(Number(this.propertyId)).subscribe({
@@ -275,16 +283,16 @@ export class PropertyInfoComponent {
 
         this.form.patchValue({
           label: prop.label,
-          propertyType: prop.propertyType,
-          propertyStatus: prop.propertyStatus,
+          propertyType: prop.propertyType as any,
+          propertyStatus: prop.propertyStatus as any,
           street: prop.street,
           postalCode: prop.postalCode,
           city: prop.city,
-          surface: prop.surface,
+          surface: prop.surface as any,
           notes: prop.notes,
           pebScore: prop.pebScore,
-          yearBuilt: prop.yearBuilt,
-          contextRole: prop.contextRole,
+          yearBuilt: prop.yearBuilt as any,
+          contextRole: prop.contextRole as any,
         });
       },
       error: (err) => console.error(err),
@@ -295,12 +303,6 @@ export class PropertyInfoComponent {
     this.propertyId = this.route.snapshot.paramMap.get('id')!;
     this.loadProperty();
   }
-
-  editMode = signal(false);
-
-  propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
-  contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
-  propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
 
   filteredStatuses = computed(() => {
     // Si la propriété est déjà louée, on retire "FOR_RENT"

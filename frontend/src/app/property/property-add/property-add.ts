@@ -80,13 +80,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
         </mat-form-field>
 
         <label for="image">Choisir une image</label>
-        <input
-          id="image"
-          formControlName="image"
-          type="file"
-          accept="image/*"
-          (change)="onFileSelected($event)"
-        />
+        <input id="image" type="file" accept="image/*" (change)="onFileSelected($event)" />
 
         <mat-form-field>
           <mat-label>Statut de la propriété</mat-label>
@@ -181,8 +175,9 @@ export class PropertyAddComponent {
         this.snackBar.open('Ajout de la propriété avec succès!', 'Fermer');
         this.router.navigate(['/property/list']);
       },
-      error: () => {
+      error: (err) => {
         this.snackBar.open("Erreur lors de l'ajout de la propriété!", 'Fermer');
+        console.error(err);
       },
     });
   }
