@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelect, MatSelectModule } from '@angular/material/select';
@@ -23,6 +23,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { HttpClient } from '@angular/common/http';
 import { API_URL } from '../../constants';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { LeaseComponent } from '../../lease/lease';
 
 @Component({
   selector: 'app-property-info',
@@ -39,6 +40,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    LeaseComponent,
   ],
   styles: [``],
   template: `
@@ -110,7 +112,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
               <mat-form-field>
                 <mat-label>Statut</mat-label>
                 <mat-select formControlName="propertyStatus">
-                  @for (propertyStatuss of propertyStatus; track propertyStatuss) {
+                  @for (propertyStatuss of filteredStatuses(); track propertyStatuss) {
                   <mat-option [value]="propertyStatuss">{{ propertyStatuss }}</mat-option>
                   }
                 </mat-select>
@@ -243,80 +245,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
           </form>
         </div>
 
-        <div class="row card" style="justify-content: space-between; padding: 2rem;">
-          <form class="column gap-1" [formGroup]="addTenantForm">
-            <mat-form-field>
-              <mat-label>Nom complet</mat-label>
-              <input type="text" matInput formControlName="fullName" placeholder="Ex. Dupont" />
-              @if (addTenantForm.get('fullName')?.hasError('required')) {
-              <mat-error>Le nom complet est <strong>obligatoire</strong></mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field>
-              <mat-label>Adresse email</mat-label>
-              <input
-                type="email"
-                matInput
-                formControlName="email"
-                placeholder="Ex. pat@example.com"
-              />
-              @if (form.get('email')?.hasError('email') && !form.get('email')?.hasError('required'))
-              {
-              <mat-error>Entrez un adresse mail valide</mat-error>
-              } @if (addTenantForm.get('email')?.hasError('required')) {
-              <mat-error>L'email est <strong>obligatoire</strong></mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field>
-              <mat-label>Numéro de téléphone</mat-label>
-              <input type="text" matInput formControlName="phone" placeholder="Ex. 0477 08 09 44" />
-              @if (addTenantForm.get('phone')?.hasError('required')) {
-              <mat-error>Le numéro de téléphone est <strong>obligatoire</strong></mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="fill">
-              <mat-label>Période</mat-label>
-              <mat-date-range-input [rangePicker]="picker">
-                <input matStartDate placeholder="Date début" formControlName="startDate" />
-                <input matEndDate placeholder="Date fin" formControlName="endDate" />
-              </mat-date-range-input>
-              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-              <mat-date-range-picker #picker></mat-date-range-picker>
-              @if (addTenantForm.get('startDate')?.hasError('required')) {
-              <mat-error>La date de début est <strong>obligatoire</strong></mat-error>
-              } @if (addTenantForm.get('endDate')?.hasError('required')) {
-              <mat-error>La date de fin est <strong>obligatoire</strong></mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field>
-              <mat-label>Montant du loyer</mat-label>
-              <input matInput type="number" min="0" formControlName="rentAmount" />
-              @if (addTenantForm.get('rentAmount')?.hasError('required')) {
-              <mat-error>La montant du loyer est <strong>obligatoire</strong></mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field>
-              <mat-label>Jour du paiement</mat-label>
-              <input matInput type="number" min="1" max="30" formControlName="paymentDay" />
-              @if (addTenantForm.get('paymentDay')?.hasError('required')) {
-              <mat-error>Le jour de paiement est <strong>obligatoire</strong></mat-error>
-              }
-            </mat-form-field>
-          </form>
-          <button
-            (click)="addTenant()"
-            [disabled]="addTenantForm.invalid"
-            matButton="filled"
-            color="primary"
-          >
-            Ajouter nouveau locataire
-          </button>
-        </div>
+        @if (property?.propertyStatus?.toString() === "RENTED" ||
+        property?.propertyStatus?.toString() === "FOR_RENT") {
+        <app-lease [currentPropertyStatus]="property?.propertyStatus"></app-lease>
+        }
       </div>
     </div>
   `,
@@ -359,8 +291,17 @@ export class PropertyInfoComponent {
   editMode = signal(false);
 
   propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
-  propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
   contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
+  propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
+
+  filteredStatuses = computed(() => {
+    // Si la propriété est déjà louée, on retire "FOR_RENT"
+    if (this.property?.propertyStatus.toString() === 'RENTED') {
+      return this.propertyStatus.filter((status) => status !== 'FOR_RENT');
+    }
+    // Si elle n'est pas louée, on ne laisse pas la possibilité à l'utilisateur de mettre lui-même RENTED sans créer de contrat de leasing
+    return this.propertyStatus.filter((status) => status !== 'RENTED');
+  });
 
   private formBuilder = inject(FormBuilder);
 
@@ -433,16 +374,4 @@ export class PropertyInfoComponent {
       },
     });
   }
-
-  addTenantForm = this.formBuilder.group({
-    fullName: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]],
-    phone: ['', Validators.required],
-    startDate: [null, Validators.required],
-    endDate: [null, Validators.required],
-    rentAmount: [null, [Validators.min(0), Validators.required]],
-    paymentDay: [null, [Validators.min(0), Validators.max(30), Validators.required]],
-  });
-
-  addTenant() {}
 }
