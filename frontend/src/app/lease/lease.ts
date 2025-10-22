@@ -1,4 +1,4 @@
-import { Component, inject, input, signal, effect } from '@angular/core';
+import { Component, inject, input, signal, effect, output } from '@angular/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelect, MatSelectModule } from '@angular/material/select';
@@ -45,8 +45,9 @@ import { Lease } from './leaseType';
   template: `
     <div class="row card" style="justify-content: space-between; padding: 2rem;">
       <form class="column gap-1" [formGroup]="form">
+        <span style="font-size: 1.2rem;">Contrat de location:</span>
         <mat-form-field>
-          <mat-label>Nom complet</mat-label>
+          <mat-label>Nom complet du locataire</mat-label>
           <input
             type="text"
             matInput
@@ -55,12 +56,12 @@ import { Lease } from './leaseType';
             [readonly]="!editMode() && currentPropertyStatus.toString().includes('RENTED')"
           />
           @if (form.get('fullName')?.hasError('required')) {
-          <mat-error>Le nom complet est <strong>obligatoire</strong></mat-error>
+          <mat-error>Le nom complet du locataire est <strong>obligatoire</strong></mat-error>
           }
         </mat-form-field>
 
         <mat-form-field>
-          <mat-label>Adresse email</mat-label>
+          <mat-label>Adresse email du locataire</mat-label>
           <input
             type="email"
             matInput
@@ -71,12 +72,12 @@ import { Lease } from './leaseType';
           @if (form.get('email')?.hasError('email') && !form.get('email')?.hasError('required')) {
           <mat-error>Entrez un adresse mail valide</mat-error>
           } @if (form.get('email')?.hasError('required')) {
-          <mat-error>L'email est <strong>obligatoire</strong></mat-error>
+          <mat-error>L'email du locatarie est <strong>obligatoire</strong></mat-error>
           }
         </mat-form-field>
 
         <mat-form-field>
-          <mat-label>Numéro de téléphone</mat-label>
+          <mat-label>Numéro de téléphone du locataire</mat-label>
           <input
             type="text"
             matInput
@@ -85,12 +86,14 @@ import { Lease } from './leaseType';
             [readonly]="!editMode() && currentPropertyStatus.toString().includes('RENTED')"
           />
           @if (form.get('phone')?.hasError('required')) {
-          <mat-error>Le numéro de téléphone est <strong>obligatoire</strong></mat-error>
+          <mat-error
+            >Le numéro de téléphone du locataire est <strong>obligatoire</strong></mat-error
+          >
           }
         </mat-form-field>
 
         <mat-form-field appearance="fill">
-          <mat-label>Période</mat-label>
+          <mat-label>Période de location</mat-label>
           <mat-date-range-input [rangePicker]="picker">
             <input
               matStartDate
@@ -175,7 +178,9 @@ import { Lease } from './leaseType';
       } @else { @if (!editMode()) {
       <div class="row gap-1">
         <button (click)="editMode.set(true)" matButton="filled" color="primary">Modifier</button>
-        <button matButton="filled" color="warn">Supprimer</button>
+        <button (click)="closeTheLease()" matButton="filled" color="warn">
+          Terminer le contrat
+        </button>
       </div>
       } @else {
       <div class="row gap-1">
@@ -197,35 +202,35 @@ export class LeaseComponent {
 
   propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
 
+  loadLease() {
+    this.http.get<Lease>(`${API_URL}/lease/${this.propertyId}`).subscribe({
+      next: (lease) => {
+        this.lease = lease;
+
+        this.form.patchValue({
+          fullName: lease.fullName,
+          email: lease.email,
+          phone: lease.phone,
+          rentAmount: lease.rentAmount,
+          paymentDay: lease.paymentDay,
+          depositAmount: lease.depositAmount,
+          notes: lease.notes,
+          startDate: new Date(lease.startDate),
+          endDate: new Date(lease.endDate),
+        });
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de la récupération de la location!', 'Fermer');
+      },
+    });
+  }
+
   constructor(private http: HttpClient, private route: ActivatedRoute, private router: Router) {
     this.propertyId = this.route.snapshot.paramMap.get('id')!;
 
     effect(() => {
       if (this.currentPropertyStatus()?.toString() === 'RENTED') {
-        console.log('editMode:', this.editMode());
-        console.log('currentPropertyStatus:', this.currentPropertyStatus.toString());
-
-        this.http.get<Lease>(`${API_URL}/lease/${this.propertyId}`).subscribe({
-          next: (lease) => {
-            this.lease = lease;
-            console.log('Lease récupéré :', lease);
-
-            this.form.patchValue({
-              fullName: lease.fullName,
-              email: lease.email,
-              phone: lease.phone,
-              rentAmount: lease.rentAmount,
-              paymentDay: lease.paymentDay,
-              depositAmount: lease.depositAmount,
-              notes: lease.notes,
-              startDate: new Date(lease.startDate),
-              endDate: new Date(lease.endDate),
-            });
-          },
-          error: () => {
-            this.snackBar.open('Erreur lors de la récupération de la location!', 'Fermer');
-          },
-        });
+        this.loadLease();
       }
     });
   }
@@ -233,6 +238,8 @@ export class LeaseComponent {
   private propertyService = inject(PropertyService);
 
   property: Property | null = null;
+
+  propertyUpdated = output();
 
   editMode = signal(false);
 
@@ -268,26 +275,8 @@ export class LeaseComponent {
       next: () => {
         this.snackBar.open('Ajout de la location avec succès!', 'Fermer');
 
-        this.http.get<Lease>(`${API_URL}/lease/${this.propertyId}`).subscribe({
-          next: (lease) => {
-            this.lease = lease;
-            this.form.patchValue({
-              fullName: lease.fullName,
-              email: lease.email,
-              phone: lease.phone,
-              rentAmount: lease.rentAmount,
-              paymentDay: lease.paymentDay,
-              depositAmount: lease.depositAmount,
-              notes: lease.notes,
-              startDate: new Date(lease.startDate),
-              endDate: new Date(lease.endDate),
-            });
-          },
-          error: (error) => {
-            this.snackBar.open('Erreur lors de la récupération de la location!', 'Fermer');
-            console.log('la fameuse erreur ' + error);
-          },
-        });
+        this.propertyUpdated.emit();
+        this.loadLease();
       },
       error: () => {
         this.snackBar.open("Erreur lors de l'ajout de la location!", 'Fermer');
@@ -313,6 +302,19 @@ export class LeaseComponent {
       },
       error: (error) => {
         this.snackBar.open('Erreur lors de la modification de la location!', 'Fermer');
+      },
+    });
+  }
+
+  closeTheLease() {
+    this.http.delete(`${API_URL}/lease/close/${this.propertyId}`).subscribe({
+      next: () => {
+        this.snackBar.open('Cloture du contrat de location avec succès!', 'Fermer');
+        this.form.reset();
+        this.propertyUpdated.emit();
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de la cloture du contrat de location!', 'Fermer');
       },
     });
   }

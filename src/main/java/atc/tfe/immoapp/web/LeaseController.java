@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -99,6 +100,7 @@ public class LeaseController {
         leaseRepository.save(lease);
 
         property.setPropertyStatus(PropertyStatus.RENTED);
+        property.setUpdatedAt(Instant.now());
         propertyRepository.save(property);
 
         return ResponseEntity.ok().body(Map.of("message", "The lease has been created"));
@@ -128,7 +130,7 @@ public class LeaseController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
         }
 
-        Lease lease = leaseRepository.findByProperty(property);
+        Lease lease = leaseRepository.findByPropertyAndLeaseStatus(property, LeaseStatus.ACTIVE);
         lease.setTenantFullName(request.fullName());
         lease.setTenantEmail(request.email());
         lease.setTenantPhone(request.phone());
@@ -168,7 +170,7 @@ public class LeaseController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
         }
 
-        Lease lease = leaseRepository.findByProperty(property);
+        Lease lease = leaseRepository.findByPropertyAndLeaseStatus(property, LeaseStatus.ACTIVE);
 
         LeaseInfoResponseDTO dto = new LeaseInfoResponseDTO(
             lease.getId(),
@@ -184,5 +186,42 @@ public class LeaseController {
         );
 
         return ResponseEntity.ok(dto);
+    }
+
+    @DeleteMapping("/close/{propertyId}")
+    public ResponseEntity<?> closeLease(@PathVariable Long propertyId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthenticated");
+        }
+
+        String email = authentication.getName(); // name = email
+        User user = userRepository.findByEmail(email);
+
+        Optional<Property> propertyOpt = propertyRepository.findById(propertyId);
+
+        if (propertyOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Property not found");
+        }
+
+        Property property = propertyOpt.get();
+
+        boolean ownsProperty = userPropertyRepository.existsByUserAndProperty(user, property);
+        if (!ownsProperty) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+
+        Lease lease = leaseRepository.findByPropertyAndLeaseStatus(property, LeaseStatus.ACTIVE);
+
+        lease.setLeaseStatus(LeaseStatus.ENDED);
+        lease.setUpdatedAt(Instant.now());
+        leaseRepository.save(lease);
+
+        property.setPropertyStatus(PropertyStatus.FOR_RENT);
+        property.setUpdatedAt(Instant.now());
+        propertyRepository.save(property);
+
+        return ResponseEntity.ok(Map.of("message", "The lease has been closed"));
     }
 }

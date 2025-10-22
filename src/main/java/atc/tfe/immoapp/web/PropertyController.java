@@ -19,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import atc.tfe.immoapp.domain.Address;
 import atc.tfe.immoapp.domain.City;
 import atc.tfe.immoapp.domain.Country;
+import atc.tfe.immoapp.domain.Lease;
 import atc.tfe.immoapp.domain.Property;
 import atc.tfe.immoapp.domain.User;
 import atc.tfe.immoapp.domain.UserProperty;
@@ -42,6 +45,7 @@ import atc.tfe.immoapp.enums.PropertyType;
 import atc.tfe.immoapp.repository.AddressRepository;
 import atc.tfe.immoapp.repository.CityRepository;
 import atc.tfe.immoapp.repository.CountryRepository;
+import atc.tfe.immoapp.repository.LeaseRepository;
 import atc.tfe.immoapp.repository.PropertyRepository;
 import atc.tfe.immoapp.repository.UserPropertyRepository;
 import atc.tfe.immoapp.repository.UserRepository;
@@ -57,15 +61,17 @@ public class PropertyController {
     private final CityRepository cityRepository;
     private final AddressRepository addressRepository;
     private final UserPropertyRepository userPropertyRepository;
+    private final LeaseRepository leaseRepository;
 
 
-    public PropertyController(PropertyRepository propertyRepository, UserRepository userRepository, CountryRepository countryRepository, CityRepository cityRepository, AddressRepository addressRepository, UserPropertyRepository userPropertyRepository) {
+    public PropertyController(PropertyRepository propertyRepository, UserRepository userRepository, CountryRepository countryRepository, CityRepository cityRepository, AddressRepository addressRepository, UserPropertyRepository userPropertyRepository, LeaseRepository leaseRepository) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.countryRepository = countryRepository;
         this.cityRepository = cityRepository;
         this.addressRepository = addressRepository;
         this.userPropertyRepository = userPropertyRepository;
+        this.leaseRepository = leaseRepository;
     }
 
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -288,5 +294,50 @@ public class PropertyController {
         );
 
         return ResponseEntity.ok(dtoPage);
+    }
+
+    @Transactional
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteProperty(@PathVariable Long id) throws IOException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthenticated");
+        }
+
+        String email = authentication.getName(); // name = email
+        User user = userRepository.findByEmail(email);
+
+        Optional<Property> propertyOpt = propertyRepository.findById(id);
+
+        if (propertyOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Property not found");
+        }
+
+        Property property = propertyOpt.get();
+
+        boolean ownsProperty = userPropertyRepository.existsByUserAndProperty(user, property);
+        if (!ownsProperty) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+
+        List<Lease> leases = leaseRepository.findAllByProperty(property);
+
+        if (!leases.isEmpty()) {
+            leaseRepository.deleteAllByProperty(property);
+        }
+
+        if (property.getImagePath() != null) {
+            Path imagePath = Paths.get(property.getImagePath());
+            try {
+                Files.deleteIfExists(imagePath);
+            } catch (IOException e) {
+                System.err.println("Erreur lors de la suppression de l'image : " + e.getMessage());
+            }
+        }
+
+        propertyRepository.delete(property);
+
+        return ResponseEntity.ok(Map.of("message", "The property has been deleted"));
     }
 }

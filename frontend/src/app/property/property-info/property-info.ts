@@ -49,7 +49,9 @@ import { LeaseComponent } from '../../lease/lease';
         <div class="row gap-1" style="align-self: flex-end;">
           @if (!editMode()) {
           <button (click)="editMode.set(true)" matButton="filled" color="primary">Modifier</button>
-          <button matButton="filled" color="warn">Supprimer</button>
+          <button (click)="deleteProperty()" matButton="filled" color="warn">
+            Supprimer la propriété
+          </button>
           } @else {
           <button
             (click)="submitEdit()"
@@ -247,7 +249,10 @@ import { LeaseComponent } from '../../lease/lease';
 
         @if (property?.propertyStatus?.toString() === "RENTED" ||
         property?.propertyStatus?.toString() === "FOR_RENT") {
-        <app-lease [currentPropertyStatus]="property?.propertyStatus"></app-lease>
+        <app-lease
+          [currentPropertyStatus]="property?.propertyStatus"
+          (propertyUpdated)="loadProperty()"
+        ></app-lease>
         }
       </div>
     </div>
@@ -263,9 +268,7 @@ export class PropertyInfoComponent {
 
   property: Property | null = null;
 
-  ngOnInit() {
-    this.propertyId = this.route.snapshot.paramMap.get('id')!;
-
+  loadProperty() {
     this.propertyService.getProperty(Number(this.propertyId)).subscribe({
       next: (prop) => {
         this.property = prop;
@@ -286,6 +289,11 @@ export class PropertyInfoComponent {
       },
       error: (err) => console.error(err),
     });
+  }
+
+  ngOnInit() {
+    this.propertyId = this.route.snapshot.paramMap.get('id')!;
+    this.loadProperty();
   }
 
   editMode = signal(false);
@@ -348,29 +356,22 @@ export class PropertyInfoComponent {
 
         this.editMode.set(false);
 
-        this.propertyService.getProperty(Number(this.propertyId)).subscribe({
-          next: (prop) => {
-            this.property = prop;
-
-            this.form.patchValue({
-              label: prop.label,
-              propertyType: prop.propertyType,
-              propertyStatus: prop.propertyStatus,
-              street: prop.street,
-              postalCode: prop.postalCode,
-              city: prop.city,
-              surface: prop.surface,
-              notes: prop.notes,
-              pebScore: prop.pebScore,
-              yearBuilt: prop.yearBuilt,
-              contextRole: prop.contextRole,
-            });
-          },
-          error: (err) => console.error(err),
-        });
+        this.loadProperty();
       },
       error: () => {
         this.snackBar.open('Erreur lors de la modification de la propriété!', 'Fermer');
+      },
+    });
+  }
+
+  deleteProperty() {
+    this.http.delete(`${API_URL}/property/${this.propertyId}`).subscribe({
+      next: () => {
+        this.snackBar.open('Suppression de la propriété avec succès!', 'Fermer');
+        this.router.navigate(['/property/list']);
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de la suppression de la propriété!', 'Fermer');
       },
     });
   }
