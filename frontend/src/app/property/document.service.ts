@@ -3,16 +3,17 @@ import {HttpClient, HttpParams} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {API_URL} from '../constants';
 import {Document, DocumentCategory, DocumentListResponse, DocumentTag} from './document';
+import {AiExtraction} from './ai-extraction';
 
 @Injectable({ providedIn: 'root'})
 export class DocumentService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   listDocuments(opts: {
     page?: number;
     search?: string;
     documentCategory?: DocumentCategory | '';
-    energyType?: string | '';
+    utilityType?: string | '';
     tags?: string[];
     propertyId?: number;
   }): Observable<DocumentListResponse> {
@@ -20,7 +21,7 @@ export class DocumentService {
       .set('page', String(opts.page ?? 0))
       .set('search', opts.search ?? '')
       .set('documentCategory', (opts.documentCategory ?? '').toString())
-      .set('energyType', opts.energyType ?? '')
+      .set('utilityType', opts.utilityType ?? '')
       .set('tags', (opts.tags ?? []).join(','));
 
     if (opts.propertyId) params = params.set('propertyId', String(opts.propertyId));
@@ -42,4 +43,9 @@ export class DocumentService {
   deleteDocument(id: number): Observable<void> {
     return this.http.delete<void>(`${API_URL}/document/${id}`);
   }
+
+  previewDocument(fd: FormData) {
+    return this.http.post<AiExtraction>(`${API_URL}/document/preview`, fd);
+  }
+
 }

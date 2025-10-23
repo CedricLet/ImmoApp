@@ -1,19 +1,16 @@
 import { Component, inject, signal } from '@angular/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelect, MatSelectModule } from '@angular/material/select';
+import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
-import { FormsModule } from '@angular/forms';
 import {
+  FormsModule,
   Validators,
   ReactiveFormsModule,
   FormBuilder,
-  AbstractControl,
-  ValidationErrors,
-  ValidatorFn,
 } from '@angular/forms';
 import { ContextRole, Property, PropertyStatus, PropertyType } from '../property';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -65,7 +62,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
         <div class="row gap-2">
           @if (property?.imagePath) {
             <img
-              [src]="API_URL + '/' + property?.imagePath"
+              [src]="'${API_URL}' + '/' + property?.imagePath"
               [alt]="property?.label"
               class="card"
               style="width: 15rem; height: 15rem;"
@@ -360,6 +357,7 @@ export class PropertyInfoComponent {
     yearBuilt: [0, Validators.min(0)],
   });
 
+
   ngOnInit() {
     this.propertyId = this.route.snapshot.paramMap.get('id')!;
 
@@ -414,6 +412,7 @@ export class PropertyInfoComponent {
   submitEdit() {
     const formData = new FormData();
     const v = this.form.value as any;
+    //const formValue = this.form.value as any;
     /*Object.keys(formValue).forEach((key) => {
       const value = formValue[key];
 
@@ -427,6 +426,7 @@ export class PropertyInfoComponent {
         formData.append(key, value != null ? value : '');
       }
     });*/
+
 
     if (this.selectedImage) {
       formData.append('image', this.selectedImage);
@@ -443,6 +443,7 @@ export class PropertyInfoComponent {
     formData.append('notes', v.notes ?? '');
     formData.append('pebScore', v.pebScore ?? '');
     formData.append('yearBuilt', v.yearBuilt ?? '');
+
 
     this.http.post(`${API_URL}/property/modify/${this.propertyId}`, formData).subscribe({
       next: () => {
@@ -491,6 +492,4 @@ export class PropertyInfoComponent {
   });
 
   addTenant() {}
-
-  protected readonly API_URL = API_URL;
 }

@@ -1,12 +1,11 @@
-import { Component, ViewChild, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { Component, ViewChild, ElementRef, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, FormControl } from '@angular/forms';
-import { MatTreeModule } from '@angular/material/tree';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { FlatTreeControl} from '@angular/cdk/tree';
-import { MatTreeFlatDataSource, MatTreeFlattener} from '@angular/material/tree';
+import { MatTreeModule, MatTreeFlatDataSource, MatTreeFlattener} from '@angular/material/tree';
+import {MatIconModule} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
+import {FlatTreeControl} from '@angular/cdk/tree';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -19,12 +18,13 @@ import { API_URL } from '../../constants';
 import {Document, DocumentCategory} from '../document';
 import {DocumentService} from '../document.service';
 import { LabelFrPipe } from '../../i18n/label-fr.pipe';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 type TreeNode = {
   name: string;
   icon?: string;
   documentCategory?: DocumentCategory;
-  energyType?: Document['energyType'];
+  utilityType?: Document['utilityType'];
   children?: TreeNode[];
 };
 
@@ -32,7 +32,7 @@ type FlatNode = {
   name: string;
   icon?: string;
   documentCategory? : DocumentCategory;
-  energyType?: Document['energyType'];
+  utilityType?: Document['utilityType'];
   level: number;
   expandable: boolean;
 }
@@ -56,36 +56,72 @@ const TREE_DATA: TreeNode[] = [
         name: 'Electricity',
         icon: 'electric_bolt',
         documentCategory: DocumentCategory.INVOICE,
-        energyType: 'ELECTRICITY',
+        utilityType: 'ELECTRICITY',
         children: [
-          {name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, energyType: 'ELECTRICITY'},
-          {name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, energyType: 'ELECTRICITY'},
+          {name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'ELECTRICITY'},
+          {name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'ELECTRICITY'},
         ],
       },
       {
         name: 'Gas',
         icon: 'local_fire_department',
         documentCategory: DocumentCategory.INVOICE,
-        energyType: 'GAS',
+        utilityType: 'GAS',
         children: [
-          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, energyType: 'GAS' },
-          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, energyType: 'GAS' },
+          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'GAS' },
+          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'GAS' },
         ],
       },
       {
         name: 'Water',
         icon: 'water_drop',
         documentCategory: DocumentCategory.INVOICE,
-        energyType: 'WATER',
+        utilityType: 'WATER',
         children: [
-          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, energyType: 'WATER' },
-          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, energyType: 'WATER' },
+          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'WATER' },
+          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'WATER' },
         ],
       },
-      { name: 'District heating', icon: 'heat_pump', documentCategory: DocumentCategory.INVOICE, energyType: 'DISTRICT_HEATING' },
-      { name: 'Fuel oil', icon: 'oil_barrel', documentCategory: DocumentCategory.INVOICE, energyType: 'FUEL_OIL' },
-      { name: 'Wood pellets', icon: 'forest', documentCategory: DocumentCategory.INVOICE, energyType: 'WOOD_PELLETS' },
-      { name: 'Solar PV', icon: 'solar_power', documentCategory: DocumentCategory.INVOICE, energyType: 'SOLAR_PV' },
+      { name: 'Fuel oil',
+        icon: 'oil_barrel',
+        documentCategory: DocumentCategory.INVOICE,
+        utilityType: 'FUEL_OIL',
+        children: [
+          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'FUEL_OIL' },
+          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'FUEL_OIL' },
+        ],},
+      { name: 'Pellets',
+        icon: 'forest',
+        documentCategory: DocumentCategory.INVOICE,
+        utilityType: 'PELLETS',
+        children: [
+          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'PELLETS' },
+          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'PELLETS' },
+        ],},
+      { name: 'Wood',
+        icon: 'forest',
+        documentCategory: DocumentCategory.INVOICE,
+        utilityType: 'WOOD',
+        children: [
+          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'WOOD' },
+          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'WOOD' },
+        ],},
+      { name: 'Coal',
+        icon: 'other_houses',
+        documentCategory: DocumentCategory.INVOICE,
+        utilityType: 'COAL',
+        children: [
+          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'COAL' },
+          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'COAL' },
+        ],},
+      { name: 'Solar PV',
+        icon: 'solar_power',
+        documentCategory: DocumentCategory.INVOICE,
+        utilityType: 'SOLAR_PV',
+        children: [
+          { name: 'Contracts', icon: 'description', documentCategory: DocumentCategory.CONTRACT, utilityType: 'SOLAR_PV' },
+          { name: 'Invoices', icon: 'receipt_long', documentCategory: DocumentCategory.INVOICE, utilityType: 'SOLAR_PV' },
+        ],},
     ],
   },
   {
@@ -122,6 +158,7 @@ const TREE_DATA: TreeNode[] = [
     MatDividerModule,
     MatPaginatorModule,
     LabelFrPipe,
+    MatProgressSpinnerModule,
   ],
   styles: [`
     .page { padding: 4rem 6rem; }
@@ -223,8 +260,8 @@ const TREE_DATA: TreeNode[] = [
                 <mat-icon>picture_as_pdf</mat-icon>
                 <div class="col">
                   <span class="muted">
-                    {{ d.documentCategory | labelFr:'category'}} • {{ (d.sizeBytes/1024/1024) | number:'1.0-2' }} MB • {{ d.uploadedAt | date:'medium' }}
-                    <ng-container *ngIf="d.energyType">• {{ d.energyType | labelFr:'energy' }}</ng-container>
+                    {{ d.fileName }} • {{ d.documentCategory | labelFr:'category'}} • {{ (d.sizeBytes/1024/1024) | number:'1.0-2' }} MB • {{ d.uploadedAt | date:'medium' }}
+                    <ng-container *ngIf="d.utilityType">• {{ d.utilityType | labelFr:'energy' }}</ng-container>
                   </span>
                   <div class="row chip-bar muted">
                     <span *ngFor="let tg of d.tags" class="chip">#{{ tg | labelFr:'tag' }}</span>
@@ -234,10 +271,10 @@ const TREE_DATA: TreeNode[] = [
 
               <div class="row gap-1">
                 <a mat-stroked-button color="primary" [href]="API_URL + '/' + d.storagePath" target="_blank">
-                  <mat-icon>open_in_new</mat-icon> Open
+                  <mat-icon>open_in_new</mat-icon> Ouvrir
                 </a>
                 <button mat-stroked-button (click)="startEdit(d)">
-                  <mat-icon>edit</mat-icon> Edit
+                  <mat-icon>edit</mat-icon> Modifier
                 </button>
                 <button mat-stroked-button color="warn" (click)="delete(d)">
                   <mat-icon>delete</mat-icon> Supprimer
@@ -261,6 +298,12 @@ const TREE_DATA: TreeNode[] = [
         <!-- RIGHT: upload / edit -->
         <div #rightPanel class="right card col gap-2">
           <span style="font-weight: 600;">Ajout/Modification document</span>
+
+          <div class="row gap-1" *ngIf="aiLoading" style="align-items:center">
+            <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span class="muted">Analyse du PDF en cours…</span>
+          </div>
+
 
           <div class="dropzone"
                [class.dragover]="dragOver"
@@ -289,14 +332,15 @@ const TREE_DATA: TreeNode[] = [
             <!-- Energy type only if relevant -->
             <mat-form-field appearance="outline">
               <mat-label>Type d'énergie (optional)</mat-label>
-              <mat-select formControlName="energyType">
+              <mat-select formControlName="utilityType">
                 <mat-option [value]="null">Aucune</mat-option>
                 <mat-option value="ELECTRICITY">{{ 'ELECTRICITY' | labelFr:'energy' }}</mat-option>
                 <mat-option value="GAS">{{ 'GAS' | labelFr:'energy' }}</mat-option>
                 <mat-option value="WATER">{{ 'WATER' | labelFr:'energy' }}</mat-option>
-                <mat-option value="DISTRICT_HEATING">{{ 'DISTRICT_HEATING' | labelFr:'energy' }}</mat-option>
                 <mat-option value="FUEL_OIL">{{ 'FUEL_OIL' | labelFr:'energy' }}</mat-option>
-                <mat-option value="WOOD_PELLETS">{{ 'WOOD_PELLETS' | labelFr:'energy' }}</mat-option>
+                <mat-option value="PELLETS">{{ 'PELLETS' | labelFr:'energy' }}</mat-option>
+                <mat-option value="WOOD">{{ 'WOOD' | labelFr:'energy' }}</mat-option>
+                <mat-option value="COAL">{{ 'COAL' | labelFr:'energy' }}</mat-option>
                 <mat-option value="SOLAR_PV">{{ 'SOLAR_PV' | labelFr:'energy' }}</mat-option>
               </mat-select>
             </mat-form-field>
@@ -317,11 +361,23 @@ const TREE_DATA: TreeNode[] = [
                   <mat-option *ngFor="let opt of filteredTagsForForm$ | async" [value]="opt">{{ opt | labelFr:'tag' }}</mat-option>
                 </mat-autocomplete>
               </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Nom de fichier</mat-label>
+                <input matInput formControlName="fileName" placeholder="ex: facture-electrabel-2024-09.pdf" />
+              </mat-form-field>
+
             </div>
 
             <div class="row gap-1" style="justify-content: space-between;">
-              <button mat-button color="primary" (click)="submit()" [disabled]="!docForm.valid || !selectedFile && !editId">
-                <mat-icon>save</mat-icon> {{ editId ? 'Save changes' : 'Upload' }}
+              <button mat-button color="primary" (click)="submit()" [disabled]="uploadLoading || aiLoading || !docForm.valid || !selectedFile && !editId">
+                <ng-container *ngIf="!uploadLoading; else saving">
+                    <mat-icon>save</mat-icon> {{ editId ? 'Save changes' : 'Upload' }}
+                </ng-container>
+                <ng-template #saving>
+                  <mat-progress-spinner diameter="16" mode="indeterminate"></mat-progress-spinner>
+                  &nbsp;Uploading...
+                </ng-template>
               </button>
               <button mat-stroked-button (click)="resetForm()">
                 <mat-icon>close</mat-icon> Clear
@@ -334,19 +390,21 @@ const TREE_DATA: TreeNode[] = [
   `
 })
 export class PropertyDocumentComponent {
-  private http = inject(HttpClient);
-  private svc = inject(DocumentService);
-  private fb = inject(FormBuilder);
-  private snack = inject(MatSnackBar);
+  private readonly svc = inject(DocumentService);
+  private readonly fb = inject(FormBuilder);
+  private readonly snack = inject(MatSnackBar);
+  private readonly route = inject(ActivatedRoute);
+
+  private currentPropertyId: number | null = null;
 
   protected readonly API_URL = API_URL;
 
   // ===== Tree control
-  private _transformer = (node: TreeNode, level: number): FlatNode => ({
+  private readonly _transformer = (node: TreeNode, level: number): FlatNode => ({
     name: node.name,
     icon: node.icon,
     documentCategory: node.documentCategory,
-    energyType: node.energyType,
+    utilityType: node.utilityType,
     level,
     expandable: !!node.children && node.children.length > 0,
   });
@@ -386,8 +444,9 @@ export class PropertyDocumentComponent {
 
   docForm = this.fb.group({
     category: ['', Validators.required],
-    energyType: [null as Document['energyType']],
+    utilityType: [null as Document['utilityType']],
     tags: [[] as string[]],
+    fileName: ['']
   });
 
   get formTags() { return this.docForm.get('tags')?.value ?? []; }
@@ -399,6 +458,9 @@ export class PropertyDocumentComponent {
   editId: number | null = null;
 
   ngOnInit() {
+    const param = this.route.snapshot.paramMap.get('propertyId');
+    this.currentPropertyId = param ? Number(param) : null;
+
     this.dataSource.data = TREE_DATA;
     // Charger liste de tags (seed)
     this.svc.getAllTags().subscribe({
@@ -442,9 +504,9 @@ export class PropertyDocumentComponent {
       page: this.pageIndex,
       search: this.searchCtrl.value || '',
       documentCategory: (this.categoryCtrl.value || '') as DocumentCategory | '',
-      energyType: '', // set via tree selection (voir selectNode)
+      utilityType: this.currentUtilityType || '', // set via tree selection (voir selectNode)
       tags: this.selectedTags,
-      // propertyId: <si besoin>
+      propertyID: this.currentPropertyId ?? undefined
     };
 
     this.svc.listDocuments(params).subscribe({
@@ -464,21 +526,22 @@ export class PropertyDocumentComponent {
     this.loadDocs();
   }
 
-  // ===== Tree selection -> remplit category / energyType filters
-  private currentEnergyType: Document['energyType'] = null;
+  // ===== Tree selection -> remplit category / utilityType filters
+  private currentUtilityType: Document['utilityType'] = null;
 
   selectNode(node: TreeNode) {
     // maj filtres
     this.categoryCtrl.setValue(node.documentCategory || '');
-    this.currentEnergyType = node.energyType ?? null;
+    this.currentUtilityType = node.utilityType ?? null;
 
-    // recharge avec energyType
+    // recharge avec utilityType
     const params = {
       page: 0,
       search: this.searchCtrl.value || '',
       documentCategory: (this.categoryCtrl.value || '') as DocumentCategory | '',
-      energyType: this.currentEnergyType || '',
+      utilityType: this.currentUtilityType || '',
       tags: this.selectedTags,
+      propertyID: this.currentPropertyId ?? undefined
     };
     this.pageIndex = 0;
     this.svc.listDocuments(params).subscribe({
@@ -498,7 +561,7 @@ export class PropertyDocumentComponent {
     this.searchCtrl.setValue('');
     this.categoryCtrl.setValue('');
     this.selectedTags = [];
-    this.currentEnergyType = null;
+    this.currentUtilityType = null;
     this.loadDocs(true);
   }
 
@@ -543,17 +606,57 @@ export class PropertyDocumentComponent {
     if (file) this.useSelectedFile(file);
   }
 
+  aiLoading = false;
+  uploadLoading = false;
+
   private useSelectedFile(file: File) {
     if (file.type !== 'application/pdf') {
-      this.snack.open('Seul les PDF sont authorisé.', 'Fermer'); return;
+      this.snack.open('Seuls les PDF sont autorisés.', 'Fermer'); return;
     }
     const sizeMB = file.size / 1024 / 1024;
     if (sizeMB > this.MAX_MB) {
       this.snack.open(`Le fichier est trop grand (${sizeMB.toFixed(2)} MB). Max ${this.MAX_MB} MB.`, 'Fermer'); return;
     }
+
     this.selectedFile = file;
     this.selectedFileName = file.name;
+
+    // reset valeurs avant AI
+    this.docForm.patchValue({
+      category: '',
+      utilityType: null,
+      tags: [],
+      fileName: file.name
+    });
+
+    // --- Preview AI ---
+    const fd = new FormData();
+    fd.append('file', file);
+    this.aiLoading = true;
+    this.svc.previewDocument(fd).subscribe({
+      next: (x) => {
+        // Sécurise – on ne force rien si l’AI ne renvoie pas
+        if (x?.documentCategory) {
+          this.docForm.get('category')?.setValue(x.documentCategory as any);
+        }
+        if (x?.utilityType) {
+          this.docForm.get('utilityType')?.setValue(x.utilityType as any);
+        }
+        if (x?.tags?.length) {
+          const uniq = Array.from(new Set([...(this.formTags||[]), ...x.tags]));
+          this.formTagsCtrl.setValue(uniq);
+        }
+        if (x?.suggestedFileName) {
+          this.docForm.get('fileName')?.setValue(x.suggestedFileName);
+        }
+      },
+      error: () => {
+        // pas grave, l’utilisateur pourra remplir à la main
+      },
+      complete: () => this.aiLoading = false
+    });
   }
+
 
   get formTagsCtrl() { return this.docForm.get('tags') as FormControl<string[]>; }
 
@@ -575,7 +678,7 @@ export class PropertyDocumentComponent {
     this.selectedFileName = '';
     this.docForm.patchValue({
       category: d.documentCategory,
-      energyType: d.energyType ?? null,
+      utilityType: d.utilityType ?? null,
       tags: d.tags || [],
     });
     // scroll to form
@@ -587,32 +690,43 @@ export class PropertyDocumentComponent {
       // UPDATE (métadonnées, pas de remplacement de fichier dans ce flux-là)
       const body: Partial<Document> = {
         documentCategory: this.docForm.value.category as DocumentCategory,
-        energyType: (this.docForm.value.energyType ?? null) as any,
+        utilityType: (this.docForm.value.utilityType ?? null) as any,
         tags: this.formTags,
       };
+      this.uploadLoading = true;
       this.svc.updateDocument(this.editId, body).subscribe({
         next: () => {
           this.snack.open('Document modifié.', 'Fermer');
           this.resetForm();
           this.loadDocs();
         },
-        error: () => this.snack.open('Erreur lors de la modification.', 'Fermer')
+        error: () => this.snack.open('Erreur lors de la modification.', 'Fermer'),
+        complete: () => this.uploadLoading = false
       });
       return;
     }
 
     // CREATE (upload)
     if (!this.selectedFile) {
-      this.snack.open('Svp sélectionnez un PDF.', 'Fermer'); return;
+      this.snack.open('Svp sélectionnez un PDF.', 'Fermer');
+      return;
     }
     const fd = new FormData();
     fd.append('file', this.selectedFile);
     fd.append('category', String(this.docForm.value.category));
-    fd.append('energyType', String(this.docForm.value.energyType ?? ''));
-    fd.append('tags', (this.formTags || []).join(','));
-    // si tu veux lier à un bien précis:
-    // fd.append('propertyId', String(this.currentPropertyId));
+    const u = this.docForm.value.utilityType;
+    if (u) fd.append('utilityType', String(u));
 
+    const tags = (this.formTags || []).filter(Boolean);
+    if (tags.length) fd.append('tags', tags.join(','));
+
+    fd.append('clientFileName', String(this.docForm.value.fileName || this.selectedFile.name));
+
+    if (this.currentPropertyId){
+      fd.append('propertyId', String(this.currentPropertyId));
+    }
+
+    this.uploadLoading = true;
     this.svc.uploadDocument(fd).subscribe({
       next: () => {
         this.snack.open('Document modifié.', 'Fermer');
@@ -620,6 +734,7 @@ export class PropertyDocumentComponent {
         this.loadDocs(true);
       },
       error: () => this.snack.open('Modification échouée.', 'Fermer'),
+      complete: () => this.uploadLoading = false
     });
   }
 
@@ -635,6 +750,6 @@ export class PropertyDocumentComponent {
     this.editId = null;
     this.selectedFile = null;
     this.selectedFileName = '';
-    this.docForm.reset({ category: '', energyType: null, tags: [] });
+    this.docForm.reset({ category: '', utilityType: null, tags: [] });
   }
 }

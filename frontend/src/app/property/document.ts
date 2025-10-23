@@ -23,7 +23,7 @@ export type Document = {
   documentCategory: DocumentCategory;
   uploadedAt: string;
   propertyId?: number;
-  energyType?: 'ELECTRICITY' | 'GAS' | 'WATER' | 'DISTRICT_HEATING' | 'FUEL_OIL' | 'WOOD_PELLETS' | 'SOLAR_PV' | null;
+  utilityType?: 'ELECTRICITY' | 'GAS' | 'WATER' | 'FUEL_OIL' | 'PELLETS' | 'WOOD' | 'COAL' | 'SOLAR_PV' | null;
   tags: string[];
 };
 

@@ -2,15 +2,14 @@ import { Pipe, PipeTransform } from '@angular/core';
 import { CATEGORY_LABEL_FR, ENERGY_LABEL_FR, TAG_LABEL_FR, TREE_LABEL_FR } from './document-labels';
 import { DocumentCategory } from '../property/document';
 
-type EnergyType =
-  | 'ELECTRICITY' | 'GAS' | 'WATER'
-  | 'DISTRICT_HEATING' | 'FUEL_OIL'
-  | 'WOOD_PELLETS' | 'SOLAR_PV';
+type UtilityType =
+  | 'ELECTRICITY' | 'GAS' | 'WATER' |'FUEL_OIL'
+  | 'PELLETS' | 'WOOD' | 'COAL' | 'SOLAR_PV';
 
 @Pipe({ name: 'labelFr', standalone: true })
 export class LabelFrPipe implements PipeTransform {
   transform(
-    value: DocumentCategory | EnergyType | string | null | undefined,
+    value: DocumentCategory | UtilityType | string | null | undefined,
     kind: 'category' | 'energy' | 'tree' | 'tag'
   ): string {
     if (value == null) return '';
@@ -21,7 +20,7 @@ export class LabelFrPipe implements PipeTransform {
     }
 
     if (kind === 'energy') {
-      const v = value as EnergyType;
+      const v = value as UtilityType;
       return ENERGY_LABEL_FR[v] ?? String(value);
     }
 

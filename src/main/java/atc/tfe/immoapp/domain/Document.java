@@ -1,6 +1,7 @@
 package atc.tfe.immoapp.domain;
 
 import atc.tfe.immoapp.enums.DocumentCategory;
+import atc.tfe.immoapp.enums.UtilityType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -56,6 +57,10 @@ public class Document {
     @Enumerated(EnumType.STRING)
     @Column(name = "document_category", nullable = false)
     private DocumentCategory documentCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "utility_type")
+    private UtilityType utilityType;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

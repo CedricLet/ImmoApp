@@ -61,7 +61,7 @@ import {API_URL} from '../../constants';
           >
             @if (property?.imagePath) {
               <img
-                [src]="API_URL + '/' + property.imagePath"
+                [src]="'${API_URL}' + '/' + property.imagePath"
                 [alt]="property.label"
                 style="width: 6rem; height: 6rem;"
               />
@@ -140,6 +140,4 @@ export class PropertyListComponent {
     this.propertiesInfo.pageIndex = 0;
     this.loadProperties();
   }
-
-  protected readonly API_URL = API_URL;
 }

@@ -1,9 +1,8 @@
 import { DocumentCategory } from '../property/document';
 
-export type EnergyType =
-  | 'ELECTRICITY' | 'GAS' | 'WATER'
-  | 'DISTRICT_HEATING' | 'FUEL_OIL'
-  | 'WOOD_PELLETS' | 'SOLAR_PV';
+export type UtilityType =
+  | 'ELECTRICITY' | 'GAS' | 'WATER' | 'FUEL_OIL'
+  | 'PELLETS' | 'WOOD' | 'COAL' | 'SOLAR_PV';
 
 export const CATEGORY_LABEL_FR: Record<DocumentCategory, string> = {
   CONTRACT: 'Contrat',
@@ -16,13 +15,23 @@ export const CATEGORY_LABEL_FR: Record<DocumentCategory, string> = {
   PEB: 'PEB',
 };
 
-export const ENERGY_LABEL_FR: Record<EnergyType, string> = {
+export const ENERGY_LABEL_FR: {
+  ELECTRICITY: string;
+  GAS: string;
+  WATER: string;
+  FUEL_OIL: string;
+  PELLETS: string;
+  WOOD: string,
+  COAL: string,
+  SOLAR_PV: string
+} = {
   ELECTRICITY: 'Électricité',
   GAS: 'Gaz',
   WATER: 'Eau',
-  DISTRICT_HEATING: 'Chauffage urbain',
   FUEL_OIL: 'Mazout',
-  WOOD_PELLETS: 'Pellets de bois',
+  PELLETS: 'Pellets de bois',
+  WOOD: 'Bois',
+  COAL: 'Charbon',
   SOLAR_PV: 'Solaire PV',
 };
 
@@ -33,9 +42,10 @@ export const TREE_LABEL_FR: Record<string, string> = {
   'Electricity': 'Électricité',
   'Gas': 'Gaz',
   'Water': 'Eau',
-  'District heating': 'Chauffage urbain',
   'Fuel oil': 'Mazout',
-  'Wood pellets': 'Pellets de bois',
+  'Pellets': 'Pellets de bois',
+  'Wood': 'Bois',
+  'Coal': 'Charbon',
   'Solar PV': 'Solaire PV',
   'Syndic': 'Syndic',
   'Syndic reports': 'Rapports de syndic',
