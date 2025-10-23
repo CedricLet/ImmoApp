@@ -8,21 +8,127 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class FileStorageService {
+    @Value("${uploads.tmp.dir:uploads/tmp}")
+    private String tmpDir;
+
+    @Value("${uploads.docs.dir:uploads/docs}")
+    private String docsDir;
 
     @Value("${app.upload.dir:uploads}")
     private String baseDir;
 
     @Value("${app.upload.max-mb:15}")
     private int maxMB;
+
+    public TempStored storeTemp(MultipartFile file) {
+        try {
+        Path dir = Paths.get(tmpDir);
+        Files.createDirectories(dir);
+
+        String tempId = UUID.randomUUID().toString().replace("-", "");
+        String ext = Optional.ofNullable(file.getOriginalFilename())
+                .filter(n -> n.contains("."))
+                .map(n -> n.substring(n.lastIndexOf(".")))
+                .orElse(".pdf");
+
+        String fileName = tempId + ext;
+        Path dest = dir.resolve(fileName);
+
+        try (InputStream in = file.getInputStream()){
+            Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
+        }
+        String mime = Files.probeContentType(dest);
+        if (mime == null) mime = "application/pdf";
+        long size = Files.size(dest);
+        return new TempStored(tempId, dest.toString(), mime, size);
+        }catch (IOException e) {
+            throw new IllegalStateException("Cannot store temp file", e);
+        }
+    }
+
+    public Path moveTempToFinal(String tempId, String finalFileName) throws IOException {
+        Path src = findTempByIdOrThrow(tempId);
+        Path finalDirPath = Paths.get(docsDir);
+        Files.createDirectories(finalDirPath);
+
+        if (!finalFileName.toLowerCase().endsWith(".pdf")) {
+            finalFileName = finalFileName + ".pdf";
+        }
+        Path target = finalDirPath.resolve(finalFileName);
+        return Files.move(src, target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    public void discardTemp(String tempId) {
+        try {
+            Path p = findTempById(tempId);
+            if (p != null) Files.deleteIfExists(p);
+        } catch (IOException ignored) {
+            // ignored
+        }
+    }
+
+    // ====== Purge: supprime les fichiers plus vieux que TTL ======
+    public void purgeTempsOlderThan(Duration ttl) {
+        Path dir = Paths.get(tmpDir);
+        if (!Files.exists(dir)) return;
+
+        Instant cutoff = Instant.now().minus(ttl);
+        try (Stream<Path> files = Files.list(dir)) {
+            files.filter(Files::isRegularFile)
+                    .filter(p -> {
+                        try {
+                            return Files.getLastModifiedTime(p).toInstant().isBefore(cutoff);
+                        } catch (IOException e) {
+                            return false;
+                        }
+                    })
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                            // Si fichier verrouillé / en cours d’utilisation, on ignore; on réessaiera plus tard
+                        }
+                    });
+        } catch (IOException ignored) {
+            // ignored
+        }
+    }
+
+    // ====== Helpers ======
+    private Path findTempByIdOrThrow(String tempId) throws IOException {
+        Path p = findTempById(tempId);
+        if (p == null) throw new IllegalArgumentException("Temp file not found for id=" + tempId);
+        return p;
+    }
+
+    private Path findTempById(String tempId) throws IOException {
+        Path dir = Paths.get(tmpDir);
+        if (!Files.exists(dir)) return null;
+
+        try (Stream<Path> files = Files.list(dir)) {
+            return files
+                    .filter(Files::isRegularFile)
+                    .filter(p -> p.getFileName().toString().startsWith(tempId))
+                    .findFirst()
+                    .orElse(null);
+        }
+    }
 
     public StoredFile store(MultipartFile file){
         if (file == null || file.isEmpty()){
@@ -82,5 +188,6 @@ public class FileStorageService {
         }
     }
 
+    public record TempStored(String tempId, String path, String mime, long size){}
     public record StoredFile(String path, long size, String mime, String checksum) {}
 }

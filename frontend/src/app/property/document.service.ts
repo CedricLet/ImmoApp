@@ -48,4 +48,44 @@ export class DocumentService {
     return this.http.post<AiExtraction>(`${API_URL}/document/preview`, fd);
   }
 
+  stage(fd: FormData) {
+    return this.http.post<{
+      tempId: string;
+      originalFileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      ai: {
+        documentCategory: string | null;
+        utilityType: string | null;
+        tags: string[];
+        suggestedFileName: string | null;
+      };
+    }>(`${API_URL}/document/stage`, fd);
+  }
+
+  finalize(body: {
+    tempId: string;
+    category: string;
+    utilityType?: string | null;
+    tags?: string[];
+    propertyId?: number;
+    clientFileName?: string;
+  }) {
+    const params: any = {
+      tempId: body.tempId,
+      category: body.category,
+    };
+    if (body.utilityType) params.utilityType = body.utilityType;
+    if (body.tags?.length) params.tags = body.tags.join(',');
+    if (body.propertyId) params.propertyId = String(body.propertyId);
+    if (body.clientFileName) params.clientFileName = body.clientFileName;
+
+    return this.http.post<Document>(`${API_URL}/document/finalize`, null, { params });
+  }
+
+  discard(tempId: string) {
+    return this.http.delete<void>(`${API_URL}/document/discard`, { params: { tempId }});
+  }
+
+
 }

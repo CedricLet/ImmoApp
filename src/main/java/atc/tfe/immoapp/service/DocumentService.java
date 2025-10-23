@@ -5,6 +5,7 @@ import atc.tfe.immoapp.domain.*;
 import atc.tfe.immoapp.dto.mapper.AiExtraction;
 import atc.tfe.immoapp.dto.mapper.DocumentDTO;
 import atc.tfe.immoapp.dto.mapper.DocumentListResponseDTO;
+import atc.tfe.immoapp.dto.mapper.StageResponseDTO;
 import atc.tfe.immoapp.enums.DocumentCategory;
 import atc.tfe.immoapp.enums.UtilityType;
 import atc.tfe.immoapp.repository.*;
@@ -18,6 +19,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -72,6 +76,90 @@ public class DocumentService {
     private final AiService aiService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final UserPropertyRepository userPropertyRepository;
+
+
+    public StageResponseDTO stage(MultipartFile file) throws IOException {
+        User currentUser = currentUserService.getCurrentUser();
+        if (currentUser == null) throw new IllegalStateException("Unauthenticated User");
+
+        var stored = storage.storeTemp(file);
+
+        // AI preview
+        String text = extractPdftext(file);
+        String prompt = buildAiPrompt(safeOriginalName(file), text);
+        AiExtraction ai = null;
+        try {
+            String aiJson = aiService.quickAnswer(prompt);
+            var x = parseAi(aiJson);
+            if (x != null){
+                ai = new AiExtraction(x.documentCategory(), x.utilityType(), normalizeList(x.tags()), x.suggestedFileName());
+            }
+        } catch (Exception e) {
+            // ignored
+        }
+
+        if (ai == null) ai = new AiExtraction(null, null, List.of(), null);
+
+        return new StageResponseDTO(
+                stored.tempId(),
+                safeOriginalName(file),
+                stored.mime(),
+                stored.size(),
+                ai
+        );
+    }
+
+    @Transactional
+    public DocumentDTO finalizeFromTemp(
+            String tempId,
+            DocumentCategory category,
+            UtilityType utilityType,
+            List<String> tagsCsvOrList,
+            Long propertyId,
+            String clientFileName
+    ){
+        User currentUser = currentUserService.getCurrentUser();
+        if (currentUser == null) throw new IllegalStateException("Unauthenticated User");
+
+        String chosenName = (clientFileName != null && !clientFileName.isBlank()) ? clientFileName.trim() : "document.pdf";
+        if (!chosenName.toLowerCase().endsWith(".pdf")) chosenName = chosenName+".pdf";
+
+        Path finalPath;
+        try {
+            finalPath = storage.moveTempToFinal(tempId, chosenName);
+        }catch (IOException e) {
+            throw new IllegalStateException("Cannot finalize upload: " + e.getMessage());
+        }
+
+        Document d = new Document();
+        d.setFileName(chosenName);
+        d.setMimeType("application/pdf");
+        try { d.setSizeBytes(Files.size(finalPath)); } catch (IOException ignored) {}
+        d.setStoragePath(finalPath.toString().replace("\\", "/"));
+        d.setDocumentCategory(category);
+        d.setUtilityType(utilityType);
+        d.setUploadedBy(currentUser);
+        d.setUploadedAt(Instant.now());
+        d.setCreatedAt(Instant.now());
+        d.setUpdatedAt(Instant.now());
+
+        if (propertyId != null) {
+            Property p = new Property();
+            p.setId(propertyId);
+            d.setProperty(p);
+        }
+
+        d = documentRepository.save(d);
+
+        // Tags
+        replaceTags(d.getId(), new HashSet<>(normalizeCsvOrList(tagsCsvOrList)));
+
+        return getDocumentDTO(d);
+    }
+
+    public void discardTemp(String tempId){
+        storage.discardTemp(tempId);
+    }
 
     public DocumentListResponseDTO list(
             int page,

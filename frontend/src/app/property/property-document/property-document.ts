@@ -608,6 +608,7 @@ export class PropertyDocumentComponent {
 
   aiLoading = false;
   uploadLoading = false;
+  stageId: string | null = null;
 
   private useSelectedFile(file: File) {
     if (file.type !== 'application/pdf') {
@@ -633,8 +634,11 @@ export class PropertyDocumentComponent {
     const fd = new FormData();
     fd.append('file', file);
     this.aiLoading = true;
-    this.svc.previewDocument(fd).subscribe({
-      next: (x) => {
+    this.svc.stage(fd).subscribe({
+      next: (res) => {
+        this.stageId = res.tempId;
+
+        const x = res.ai;
         // Sécurise – on ne force rien si l’AI ne renvoie pas
         if (x?.documentCategory) {
           this.docForm.get('category')?.setValue(x.documentCategory as any);
@@ -651,7 +655,7 @@ export class PropertyDocumentComponent {
         }
       },
       error: () => {
-        // pas grave, l’utilisateur pourra remplir à la main
+        this.stageId = null; // stage a échoué, user pourra remplir manuellement
       },
       complete: () => this.aiLoading = false
     });
@@ -707,11 +711,11 @@ export class PropertyDocumentComponent {
     }
 
     // CREATE (upload)
-    if (!this.selectedFile) {
+    if (!this.stageId) {
       this.snack.open('Svp sélectionnez un PDF.', 'Fermer');
       return;
     }
-    const fd = new FormData();
+    /*const fd = new FormData();
     fd.append('file', this.selectedFile);
     fd.append('category', String(this.docForm.value.category));
     const u = this.docForm.value.utilityType;
@@ -724,32 +728,47 @@ export class PropertyDocumentComponent {
 
     if (this.currentPropertyId){
       fd.append('propertyId', String(this.currentPropertyId));
-    }
+    }*/
 
     this.uploadLoading = true;
-    this.svc.uploadDocument(fd).subscribe({
+    this.svc.finalize({
+      tempId: this.stageId,
+      category: String(this.docForm.value.category),
+      utilityType: this.docForm.value.utilityType || undefined,
+      tags: (this.formTags || []).filter(Boolean),
+      clientFileName: String(this.docForm.value.fileName || this.selectedFile?.name),
+
+    }).subscribe({
       next: () => {
-        this.snack.open('Document modifié.', 'Fermer');
+        this.snack.open('Document enregistré', 'Fermer');
         this.resetForm();
         this.loadDocs(true);
       },
-      error: () => this.snack.open('Modification échouée.', 'Fermer'),
+      error: () => this.snack.open('Enregirstrement échoué', 'Fermer'),
       complete: () => this.uploadLoading = false
-    });
+    })
   }
 
   delete(d: Document) {
     if (!confirm('Supprimer ce document?')) return;
     this.svc.deleteDocument(d.id).subscribe({
-      next: () => { this.snack.open('Document supprimé.', 'Fermer'); this.loadDocs(); },
+      next: () => {
+        this.snack.open('Document supprimé.', 'Fermer');
+        this.loadDocs();
+      },
       error: () => this.snack.open('Suppression échouée.', 'Fermé'),
     });
   }
 
   resetForm() {
+    if (this.stageId){
+      this.svc.discard(this.stageId).subscribe({ next: () => {}, error: () => {}});
+    }
+    this.stageId = null;
     this.editId = null;
-    this.selectedFile = null;
+    this.selectedFile = null
     this.selectedFileName = '';
     this.docForm.reset({ category: '', utilityType: null, tags: [] });
   }
+
 }

@@ -1,9 +1,6 @@
 package atc.tfe.immoapp.web;
 
-import atc.tfe.immoapp.dto.mapper.AiExtraction;
-import atc.tfe.immoapp.dto.mapper.DocumentDTO;
-import atc.tfe.immoapp.dto.mapper.DocumentListResponseDTO;
-import atc.tfe.immoapp.dto.mapper.DocumentUpdateRequest;
+import atc.tfe.immoapp.dto.mapper.*;
 import atc.tfe.immoapp.enums.DocumentCategory;
 import atc.tfe.immoapp.enums.UtilityType;
 import atc.tfe.immoapp.service.DocumentService;
@@ -12,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,6 +32,31 @@ public class DocumentController {
                 .filter(s -> !s.isBlank()).toList();
 
         return documentService.list(page, search, documentCategory, utilityType, tagNames, propertyId);
+    }
+
+    @PostMapping(value = "/stage", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public StageResponseDTO stageResponseDTO(@RequestPart("file") MultipartFile file) throws IOException {
+        return documentService.stage(file);
+    }
+
+    @PostMapping("/finalize")
+    public DocumentDTO finalizeFromTemp(
+            @RequestParam("tempId") String tempId,
+            @RequestParam("category") DocumentCategory category,
+            @RequestParam(value = "utilityType", required = false) String utilityTypeRaw,
+            @RequestParam(value = "tags", required = false) String tagsCsv,
+            @RequestParam(value = "propertyId", required = false) Long propertyId,
+            @RequestParam(value = "clientFileName", required = false) String clientFileName
+    ){
+        List<String> tags = (tagsCsv == null || tagsCsv.isBlank()) ? List.of() : List.of(tagsCsv);
+        return documentService.finalizeFromTemp(
+                tempId, category, DocumentService.parseUtilityOrNull(utilityTypeRaw), tags, propertyId, clientFileName
+        );
+    }
+
+    @DeleteMapping("/discard")
+    public void discard(@RequestParam("tempId")  String tempId){
+        documentService.discardTemp(tempId);
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
