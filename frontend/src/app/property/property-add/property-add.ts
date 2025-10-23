@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { Validators, ReactiveFormsModule, FormBuilder } from '@angular/forms';
@@ -85,7 +85,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
         <mat-form-field>
           <mat-label>Statut de la propriété</mat-label>
           <mat-select formControlName="propertyStatus">
-            @for (propertyStatuss of propertyStatus; track propertyStatuss) {
+            @for (propertyStatuss of filteredStatuses(); track propertyStatuss) {
             <mat-option [value]="propertyStatuss">{{ propertyStatuss }}</mat-option>
             }
           </mat-select>
@@ -138,6 +138,11 @@ export class PropertyAddComponent {
   propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
   propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
   contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
+
+  filteredStatuses = computed(() => {
+    // La propriété ne peut pas être "RENTED" tant que le contrat de lease n'a pas encore été crée
+    return this.propertyStatus.filter((status) => status !== 'RENTED');
+  });
 
   form = this.formBuilder.group({
     street: ['', Validators.required],
