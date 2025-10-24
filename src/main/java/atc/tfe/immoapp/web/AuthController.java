@@ -66,20 +66,4 @@ public class AuthController {
         String token = jwtUtil.generateToken(saved.getId(), saved.getUserType().name(), saved.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponseDTO(token));
     }
-
-    /*@GetMapping("/me")
-    public ResponseEntity<?> me(@AuthenticationPrincipal Object principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
-
-        String email = principal.toString(); // car on a injecté l'email comme principal
-        User u = userRepository.findByEmail(email);
-        if (u == null) return ResponseEntity.status(404).body(Map.of("error", "User not found"));
-
-        return ResponseEntity.ok(Map.of(
-                "email", u.getEmail(),
-                "firstname", u.getFirstname(),
-                "lastname", u.getLastname(),
-                "role", u.getUserType().name()
-        ));
-    }*/
 }

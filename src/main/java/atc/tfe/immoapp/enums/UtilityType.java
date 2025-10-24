@@ -4,8 +4,9 @@ public enum UtilityType {
     ELECTRICITY,
     GAS,
     WATER,
-    FUEL,
-    PELLET,
+    FUEL_OIL,
+    PELLETS,
     WOOD,
-    COAL
+    COAL,
+    SOLAR_PV
 }

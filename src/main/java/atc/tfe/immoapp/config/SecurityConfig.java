@@ -50,13 +50,13 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(reg -> reg
                         .requestMatchers(
+                                "/error",
                                 "/api/health", "/api/health/**",
                                 "/actuator/health",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
                                 "/login",
                                 "/signup",
-                                "/uploads/**",
-                                "/ai/**"
+                                "/uploads/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()

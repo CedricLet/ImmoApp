@@ -1,3 +1,5 @@
+-- V4__denormalize_tenants_into_leases.sql
+
 -- 1) Ajouter les colonnes de locataire (nullables pour permettre le backfill)
 ALTER TABLE leases
     ADD COLUMN tenant_full_name VARCHAR(120) NULL AFTER tenant_id,
@@ -18,7 +20,7 @@ ALTER TABLE leases
     MODIFY COLUMN tenant_full_name VARCHAR(120) NOT NULL;
 
 -- 4) Supprimer la contrainte FK et l'index liés à tenant_id
-ALTER TABLE leases DROP FOREIGN KEY fk_leases_tenant;
+ALTER TABLE leases DROP FOREIGN KEY `fk_leases_tenant`;
 ALTER TABLE leases DROP INDEX idx_leases_tenant;
 
 -- 5) Supprimer la colonne tenant_id (devenue inutile)

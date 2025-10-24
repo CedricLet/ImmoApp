@@ -6,8 +6,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
-import { FormsModule } from '@angular/forms';
 import {
+  FormsModule,
   Validators,
   ReactiveFormsModule,
   FormBuilder,
