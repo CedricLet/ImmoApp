@@ -21,6 +21,25 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+
+/**
+ * Service de gestion de fichiers uploadés : stockage temporaire, validation basique,
+ * déplacement en stockage final, purge des temporaires, et suppression.
+ * <p>
+ * Paramètres configurables (avec valeurs par défaut) :
+ * {@code uploads.tmp.dir} (par défaut {@code uploads/tmp}) : dossier des fichiers temporaires.
+ * {@code uploads.docs.dir} (par défaut {@code uploads/docs}) : dossier de stockage final des documents.
+ * {@code app.upload.dir} (par défaut {@code uploads}) : base des dossiers d’upload horodatés.
+ * {@code app.upload.max-mb} (par défaut {@code 15}) : taille max autorisée pour {@link #store(MultipartFile)}.
+ * <p>
+ * Fonctions principales
+ * {@link #storeTemp(MultipartFile)} : enregistre un fichier tel quel en zone temporaire et retourne ses métadonnées.
+ * {@link #moveTempToFinal(String, String)} : déplace un temp vers le dossier final en lui donnant un nom déterministe.
+ * {@link #discardTemp(String)} : supprime un temp s’il existe.
+ * {@link #purgeTempsOlderThan(Duration)} : supprime les temps plus vieux qu’un TTL donné.
+ * {@link #store(MultipartFile)} : pipeline “prod” imposant PDF + limite de taille + stockage horodaté + checksum SHA-256.
+ * {@link #delete(String)} : supprime un fichier par son chemin relatif sécurisé sous {@code uploads/}.
+ */
 @Service
 @RequiredArgsConstructor
 public class FileStorageService {
@@ -36,10 +55,22 @@ public class FileStorageService {
     @Value("${app.upload.max-mb:15}")
     private int maxMB;
 
+    /**
+     * Stocke un fichier en zone temporaire et retourne ses métadonnées minimales.
+     * L’extension est héritée du nom original s’il en a une, sinon {@code .pdf}.
+     * Le type MIME est détecté via {@link Files#probeContentType(Path)} et vaut {@code application/pdf} par défaut si inconnu.
+     * @param file le fichier multipart reçu
+     * @return objet décrivant le fichier temporaire (id, chemin, mime, taille)
+     * @throws IllegalStateException si une erreur E/S survient
+     */
     public TempStored storeTemp(MultipartFile file) {
         try {
         Path dir = Paths.get(tmpDir);
         Files.createDirectories(dir);
+
+        if (file.getSize() > maxMB) {
+            throw new IOException("File is too large");
+        }
 
         String tempId = UUID.randomUUID().toString().replace("-", "");
         String ext = Optional.ofNullable(file.getOriginalFilename())
@@ -62,6 +93,14 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Déplace un fichier temporaire identifié par son {@code tempId} vers le dossier final.
+     * Le nom de fichier final est forcé à l’extension {@code .pdf} si elle n’est pas présente.
+     * @param tempId identifiant du fichier temporaire (préfixe du nom physique)
+     * @param finalFileName nom de fichier souhaité (sans ou avec .pdf)
+     * @return le {@link Path} de destination après déplacement
+     * @throws IOException si le temp n’existe pas ou en cas d’erreur E/S
+     */
     public Path moveTempToFinal(String tempId, String finalFileName) throws IOException {
         Path src = findTempByIdOrThrow(tempId);
         Path finalDirPath = Paths.get(docsDir);
@@ -74,6 +113,10 @@ public class FileStorageService {
         return Files.move(src, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
+    /**
+     * Supprime silencieusement un fichier temporaire (si trouvé) pour un {@code tempId}.
+     * @param tempId identifiant du fichier temporaire
+     */
     public void discardTemp(String tempId) {
         try {
             Path p = findTempById(tempId);
@@ -83,6 +126,11 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Purge les fichiers temporaires plus anciens que le TTL fourni.
+     * Ne parcourt que le niveau direct du dossier temporaire.
+     * @param ttl durée de rétention maximale (ex. PT1H, P1D)
+     */
     // ====== Purge: supprime les fichiers plus vieux que TTL ======
     public void purgeTempsOlderThan(Duration ttl) {
         Path dir = Paths.get(tmpDir);
@@ -110,13 +158,25 @@ public class FileStorageService {
         }
     }
 
-    // ====== Helpers ======
+    /**
+     * Recherche un temp par son id et lève une exception s’il est introuvable.
+     * @param tempId identifiant temp
+     * @return le chemin du fichier trouvé
+     * @throws IOException si problème d’accès
+     * @throws IllegalArgumentException si non trouvé
+     */
     private Path findTempByIdOrThrow(String tempId) throws IOException {
         Path p = findTempById(tempId);
         if (p == null) throw new IllegalArgumentException("Temp file not found for id=" + tempId);
         return p;
     }
 
+    /**
+     * Recherche un temp par son id (matche le début du nom de fichier).
+     * @param tempId identifiant temp
+     * @return le {@link Path} du fichier, ou {@code null} si absent
+     * @throws IOException si problème d’accès
+     */
     private Path findTempById(String tempId) throws IOException {
         Path dir = Paths.get(tmpDir);
         if (!Files.exists(dir)) return null;
@@ -130,10 +190,22 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Stockage “final” d’un fichier PDF avec validations :
+     * non null & non vide ;
+     * type {@code application/pdf} ;
+     * taille ≤ {@code maxMB} ;
+     * écriture dans {@code baseDir/YYYY/MM} avec nom aléatoire ;
+     * calcul du checksum SHA-256 pour traçabilité.
+     * @param file fichier à enregistrer (attendu PDF)
+     * @return métadonnées du fichier stocké (chemin relatif, taille, mime, checksum)
+     * @throws RuntimeException enveloppe d’exceptions E/S ou validation
+     */
     public StoredFile store(MultipartFile file){
         if (file == null || file.isEmpty()){
             throw new IllegalArgumentException("Le fichier est vide");
         }
+        // Pour une sécurité renforcée, ajouté un contrôle supplémentaire comme signature du PDF "%PDF-" ou librairie PDF
         if (!MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(file.getContentType())){
             throw new IllegalArgumentException("Seuls les PDF sont autorisés !");
         }
@@ -174,6 +246,12 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Supprime un fichier par son chemin relatif sous {@code uploads/}, avec garde-fous.
+     * Le chemin est normalisé, et la suppression refusée si l’emplacement
+     * ne commence pas par {@code baseDir} ni par {@code uploads/}.
+     * @param relativePath chemin relatif (ex. {@code uploads/2025/10/uuid.pdf})
+     */
     public void delete(String relativePath){
         if (relativePath == null || relativePath.isBlank()) return;
         try {

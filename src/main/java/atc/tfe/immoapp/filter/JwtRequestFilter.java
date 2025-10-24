@@ -5,17 +5,33 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import atc.tfe.immoapp.utils.JwtUtil;
 
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Filtre Spring Security exécuté une seule fois par requête pour gérer l’authentification par JWT.
+ * Rôle :
+ * Lire l’en-tête {@code Authorization} (schéma "Bearer").
+ * Extraire le token, puis en dériver les informations (email et rôle) via {@link JwtUtil}.
+ * Valider le token (signature, expiration, audience, etc. selon {@link JwtUtil}).
+ * Si valide, construire une {@link UsernamePasswordAuthenticationToken} et
+ * la placer dans le {@link SecurityContextHolder} pour marquer la requête
+ * comme authentifiée avec l’autorité extraite.
+ * <p>
+ * Notes
+ * Si aucun token valide n’est présent, la requête continue non authentifiée.
+ * Les exceptions lors du parsing/validation sont ignorées volontairement
+ * (voir bloc catch), la requête reste alors non authentifiée.
+ *
+ */
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
@@ -25,6 +41,22 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * Point d’entrée du filtre pour chaque requête HTTP.
+     * Étapes :
+     * Récupère l’en-tête {@code Authorization}.
+     * Vérifie le schéma {@code Bearer } et isole le token.
+     * Extrait l’email ; si pas d’authentification déjà présente dans le contexte,
+     * tente la validation du token.
+     * En cas de succès, récupère le rôle, crée l’{@code Authentication} avec l’autorité
+     * correspondante et l’enregistre dans le {@code SecurityContextHolder}.
+     * Dans tous les cas, délègue au filtre suivant.
+     * @param request requête HTTP entrante
+     * @param response réponse HTTP
+     * @param filterChain chaîne de filtres à poursuivre
+     * @throws ServletException en cas d’erreur de filtre/servlet
+     * @throws IOException en cas d’erreur d’E/S
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

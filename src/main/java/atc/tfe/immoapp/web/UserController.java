@@ -1,26 +1,23 @@
 package atc.tfe.immoapp.web;
 
+import atc.tfe.immoapp.domain.User;
+import atc.tfe.immoapp.dto.mapper.ModifyUserDTO;
+import atc.tfe.immoapp.dto.mapper.ModifyUserPasswordDTO;
 import atc.tfe.immoapp.dto.mapper.UserDTO;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import java.time.Instant;
-import java.util.Map;
-
+import atc.tfe.immoapp.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import atc.tfe.immoapp.domain.User;
-import atc.tfe.immoapp.dto.mapper.ModifyUserDTO;
-import atc.tfe.immoapp.dto.mapper.ModifyUserPasswordDTO;
-import atc.tfe.immoapp.repository.UserRepository;
-import jakarta.validation.Valid;
+import java.time.Instant;
+import java.util.Map;
 
 @RestController
 public class UserController {

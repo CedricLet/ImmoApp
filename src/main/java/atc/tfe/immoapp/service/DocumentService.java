@@ -26,6 +26,21 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Service métier pour la gestion des documents utilisateur.
+ * Responsabilités principales :
+ * Stage d’un upload (stockage temporaire + extraction AI des métadonnées).
+ * Finalisation d’un upload temporaire vers le stockage final + création d’entité {@link Document}.
+ * Upload “direct” avec validations, enrichissement AI et gestion des tags.
+ * Recherche paginée avec filtres (texte, catégorie, utilité, tags, bien).
+ * Mise à jour des métadonnées (catégorie, utilité, tags) et suppression.
+ * <p>
+ * Notes techniques
+ * Le texte PDF est extrait via Apache PDFBox.
+ * L’analyse sémantique est déléguée à {@link AiService} avec un prompt structuré (schéma JSON attendu).
+ * Les tags sont modélisés via la table de pivot {@link DocumentHasTag}.
+ * Les méthodes qui modifient les entités sont annotées {@link Transactional} quand nécessaire.
+ */
 @Service
 @RequiredArgsConstructor
 public class DocumentService {
@@ -77,7 +92,13 @@ public class DocumentService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final UserPropertyRepository userPropertyRepository;
 
-
+    /**
+     * Étape de "stage" : stocke temporairement le fichier et tente une extraction IA des métadonnées.
+     * @param file PDF uploadé
+     * @return réponse contenant l’ID temporaire, les infos de fichier et une proposition AI (catégorie, utilité, tags, nom)
+     * @throws IOException si la création du fichier temporaire échoue
+     * @throws IllegalStateException si l’utilisateur n’est pas authentifié
+     */
     public StageResponseDTO stage(MultipartFile file) throws IOException {
         User currentUser = currentUserService.getCurrentUser();
         if (currentUser == null) throw new IllegalStateException("Unauthenticated User");
@@ -109,6 +130,17 @@ public class DocumentService {
         );
     }
 
+    /**
+     * Finalise un upload temporaire : déplace le fichier vers le stockage final et crée le {@link Document}.
+     * @param tempId identifiant retourné par {@link #stage(MultipartFile)}
+     * @param category catégorie documentaire
+     * @param utilityType utilité (ou null)
+     * @param tagsCsvOrList tags (CSV ou liste)
+     * @param propertyId identifiant du bien auquel rattacher le doc (peut être null)
+     * @param clientFileName nom de fichier souhaité (extension .pdf ajoutée si absente)
+     * @return {@link DocumentDTO} du document créé
+     * @throws IllegalStateException si non authentifié ou si le déplacement échoue
+     */
     @Transactional
     public DocumentDTO finalizeFromTemp(
             String tempId,
@@ -142,13 +174,18 @@ public class DocumentService {
         d.setUploadedAt(Instant.now());
         d.setCreatedAt(Instant.now());
         d.setUpdatedAt(Instant.now());
-
-        if (propertyId != null) {
+        if (propertyId != null){
+            Property pId = new Property();
+            pId.setId(propertyId);
+            // Vérifier : user doit être lié à ce bien
+            boolean allowed = userPropertyRepository.existsByUserAndProperty(currentUser, pId);
+            if (!allowed) {
+                throw new SecurityException("User not allowed to upload document, you don't own this property");
+            }
             Property p = new Property();
             p.setId(propertyId);
             d.setProperty(p);
         }
-
         d = documentRepository.save(d);
 
         // Tags
@@ -157,10 +194,21 @@ public class DocumentService {
         return getDocumentDTO(d);
     }
 
+    /** Supprime le fichier temporaire s’il existe. */
     public void discardTemp(String tempId){
         storage.discardTemp(tempId);
     }
 
+    /**
+     * Liste paginée des documents de l’utilisateur courant avec critères de recherche.
+     * @param page index de page (>=0)
+     * @param search recherche texte libre
+     * @param category filtre par catégorie
+     * @param utilityType filtre par utilité
+     * @param tagNames filtre par tags (tous doivent être présents)
+     * @param propertyId filtre par bien
+     * @return DTO liste + total
+     */
     public DocumentListResponseDTO list(
             int page,
             String search,
@@ -200,6 +248,18 @@ public class DocumentService {
         return new DocumentListResponseDTO(dtos, p.getTotalElements());
     }
 
+    /**
+     * Upload direct d’un PDF : enregistre le fichier final, crée l’entité, enrichit via IA, puis attache les tags.
+     * @param file PDF uploadé
+     * @param category catégorie initiale
+     * @param utilityType utilité initiale
+     * @param tagsCsvOrList tags saisis (CSV ou liste)
+     * @param propertyId bien à associer (vérifié pour ownership)
+     * @param clientFileName nom de fichier souhaité (optionnel)
+     * @return {@link DocumentDTO} du document créé/enrichi
+     * @throws IllegalStateException si non authentifié
+     * @throws SecurityException si l’utilisateur n’est pas autorisé sur le bien
+     */
     @Transactional
     public DocumentDTO upload(
             MultipartFile file,
@@ -279,6 +339,9 @@ public class DocumentService {
         return getDocumentDTO(d);
     }
 
+    /**
+     * Construit un {@link DocumentDTO} pour un document donné en y ajoutant les tags.
+     */
     private DocumentDTO getDocumentDTO(Document d) {
         Map<Long, List<String>> tagMap = loadTagsMap(List.of(d.getId()));
         return new DocumentDTO(
@@ -289,6 +352,16 @@ public class DocumentService {
         );
     }
 
+    /**
+     * Met à jour la catégorie, l’utilité et les tags d’un document, réservé à son uploader.
+     * @param id id du document
+     * @param category nouvelle catégorie
+     * @param utilityType nouvelle utilité
+     * @param tags liste de tags
+     * @return DTO mis à jour
+     * @throws NoSuchElementException si doc absent
+     * @throws SecurityException si l’utilisateur courant n’est pas l’uploader
+     */
     @Transactional
     public DocumentDTO updateMetadata(Long id, DocumentCategory category, UtilityType utilityType, List<String> tags){
         User current = currentUserService.getCurrentUser();
@@ -309,6 +382,12 @@ public class DocumentService {
         return getDocumentDTO(d);
     }
 
+    /**
+     * Supprime un document (et ses liaisons tags) si et seulement si l’utilisateur courant est l’uploader.
+     * @param id id du document
+     * @throws NoSuchElementException si doc absent
+     * @throws SecurityException si non propriétaire
+     */
     @Transactional
     public void delete(Long id){
         User current = currentUserService.getCurrentUser();
@@ -322,6 +401,9 @@ public class DocumentService {
         storage.delete(path);
     }
 
+    /**
+     * Parse une valeur utilité “souple” (gère certains alias) ou {@code null}.
+     */
     public static UtilityType parseUtilityOrNull(String raw){
         if (raw == null || raw.isBlank()) return null;
         String x = raw.trim().toUpperCase();
@@ -332,6 +414,9 @@ public class DocumentService {
         };
     }
 
+    /**
+     * Prévisualisation AI sans rien persister : renvoie une proposition de métadonnées.
+     */
     public AiExtraction preview(MultipartFile file){
         String text = extractPdftext(file);
         String prompt = buildAiPrompt(safeOriginalName(file), text);
@@ -352,11 +437,16 @@ public class DocumentService {
         return new AiExtraction(null, null, List.of(), null);
     }
 
+    /** Retourne un nom de fichier “sûr” si le nom original est vide. */
     private String safeOriginalName(MultipartFile file){
         String n = file.getOriginalFilename();
         return (n == null || n.isBlank()) ? "document.pdf" : n;
     }
 
+    /**
+     * Extrait le texte d’un PDF via PDFBox.
+     * @return texte OCRisé ou chaîne vide si échec
+     */
     private String extractPdftext(MultipartFile file){
         try (var in = file.getInputStream();
             var doc = PDDocument.load(in)){
@@ -368,13 +458,17 @@ public class DocumentService {
         }
     }
 
-
+    /** Injecte le texte et le nom original dans le prompt AI. */
     private String buildAiPrompt(String originalFileName, String text) {
         return PROMPT
                 .replace("${text}", text == null ? "" : text)
                 .replace("${originalFileName}", originalFileName == null ? "" : originalFileName);
     }
 
+    /**
+     * Parse robuste de la réponse AI (JSON attendu).
+     * @return {@link AiExtraction} ou {@code null} si JSON invalide
+     */
     private AiExtraction parseAi(String json) {
         if (json == null || json.isBlank()) return null;
         try {
@@ -399,6 +493,7 @@ public class DocumentService {
         }
     }
 
+    /** Normalise une valeur utilité provenant de l’AI (alias → enum). */
     private static UtilityType mapUtilityValue(String raw){
         String x = (raw == null ? "" : raw).trim().toUpperCase()
                 .replace('-', '_')
@@ -411,6 +506,7 @@ public class DocumentService {
         };
     }
 
+    /** Transforme une liste (ou CSV) de tags en liste normalisée (trim, upper, distinct). */
     private List<String> normalizeCsvOrList(List<String> maybeCsv){
         if (maybeCsv == null) return List.of();
         return maybeCsv.stream()
@@ -423,6 +519,7 @@ public class DocumentService {
                 .toList();
     }
 
+    /** Normalise une liste de tags (trim, upper, distinct). */
     private List<String> normalizeList(List<String> list) {
         if (list == null) return List.of();
         return list.stream()
@@ -434,6 +531,7 @@ public class DocumentService {
                 .toList();
     }
 
+    /** Remplace les tags d’un document : supprime les existants, crée si nécessaire, puis associe. */
     private void replaceTags(Long documentId, Set<String> names){
         pivotRepository.deleteByDocumentId(documentId);
         if (names == null || names.isEmpty()) return;
@@ -460,6 +558,7 @@ public class DocumentService {
         pivotRepository.saveAll(links);
     }
 
+    /** Fabrique un lien pivot (Document ↔ Tag) avec clé composite. */
     private static DocumentHasTag getDocumentHasTag(Long documentId, DocumentTag tag, Instant now) {
         DocumentHasTag link = new DocumentHasTag();
         DocumentHasTagId id = new DocumentHasTagId();
@@ -477,6 +576,11 @@ public class DocumentService {
         return link;
     }
 
+    /**
+     * Charge la liste des noms de tags pour un ensemble d’identifiants de documents.
+     * @param docIds ids de documents
+     * @return map docId -> liste de noms de tags
+     */
     private Map<Long, List<String>> loadTagsMap(List<Long> docIds){
         if (docIds == null || docIds.isEmpty()) return Map.of();
         Map<Long, List<String>> map = new HashMap<>();
