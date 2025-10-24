@@ -1,15 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { Validators, ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatRadioModule } from '@angular/material/radio';
-import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { API_URL } from '../constants';
-import { Router } from '@angular/router';
-import { UserType } from '../user/user';
+import {Component, inject, signal} from '@angular/core';
+import {MatInputModule} from '@angular/material/input';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {FormBuilder, FormsModule, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatRadioModule} from '@angular/material/radio';
+import {HttpClient} from '@angular/common/http';
+import {API_URL} from '../constants';
+import {Router} from '@angular/router';
 
 @Component({
   selector: 'app-signup',

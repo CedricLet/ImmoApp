@@ -1,15 +1,16 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { Validators, ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { Router } from '@angular/router';
-import { MatSelect, MatSelectModule } from '@angular/material/select';
-import { ContextRole, PropertyStatus, PropertyType } from '../property';
-import { HttpClient } from '@angular/common/http';
-import { API_URL } from '../../constants';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import {Component, computed, inject} from '@angular/core';
+import {MatInputModule} from '@angular/material/input';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {Router} from '@angular/router';
+import {MatSelectModule} from '@angular/material/select';
+import {ContextRole, PropertyStatus, PropertyType} from '../property';
+import {HttpClient} from '@angular/common/http';
+import {API_URL} from '../../constants';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import { LabelFrPipe} from '../../i18n/label-fr.pipe';
 
 @Component({
   selector: 'app-property-add',
@@ -21,6 +22,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     MatIconModule,
     MatSelectModule,
     MatFormFieldModule,
+    LabelFrPipe
   ],
   styles: [``],
   template: `
@@ -66,7 +68,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
           <mat-label>Type de propriété</mat-label>
           <mat-select formControlName="propertyType">
             @for (propertyType of propertyTypes; track propertyType) {
-            <mat-option [value]="propertyType">{{ propertyType }}</mat-option>
+            <mat-option [value]="propertyType">{{ propertyType | labelFr:'propertyType' }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -86,7 +88,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
           <mat-label>Statut de la propriété</mat-label>
           <mat-select formControlName="propertyStatus">
             @for (propertyStatuss of filteredStatuses(); track propertyStatuss) {
-            <mat-option [value]="propertyStatuss">{{ propertyStatuss }}</mat-option>
+            <mat-option [value]="propertyStatuss">{{ propertyStatuss | labelFr:'propertyStatus' }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -95,7 +97,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
           <mat-label>Qui gère la propriété</mat-label>
           <mat-select formControlName="contextRole">
             @for (contextRole of contextRoles; track contextRole) {
-            <mat-option [value]="contextRole">{{ contextRole }}</mat-option>
+            <mat-option [value]="contextRole">{{ contextRole | labelFr:'contextRole' }}</mat-option>
             }
           </mat-select>
         </mat-form-field>

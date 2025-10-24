@@ -7,6 +7,22 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
+/**
+ * Tâche planifiée chargée de purger périodiquement les fichiers d’upload temporaires.
+ * Le job invoque {@link FileStorageService#purgeTempsOlderThan(Duration)} avec un TTL
+ * (Time To Live) exprimé en minutes, configurable via la propriété
+ * {@code uploads.tmp.ttl-minutes}.
+ * <p>
+ * Planification
+ * initialDelay : 60 secondes après le démarrage de l’application.
+ * fixedDelay : délai entre deux exécutions, configurable via
+ * {@code uploads.tmp.cleanup-interval-ms} (défaut 600000 ms = 10 min).
+ * <p>
+ * Notes
+ * Nécessite l’activation de la planification Spring
+ * (annotation {@code @EnableScheduling} dans une classe de configuration).
+ * Les exceptions sont volontairement ignorées pour ne pas faire échouer le job.
+ */
 @Component
 @RequiredArgsConstructor
 public class TempUploadCleanupJob {
@@ -16,9 +32,10 @@ public class TempUploadCleanupJob {
     private long ttlMinutes;
 
     /**
-     * Exécuté périodiquement.
-     * - initialDelay: 60s après le démarrage (laisse le temps à l’app de se stabiliser)
-     * - fixedDelay: configurable via properties (défaut 10 minutes)
+     * Exécution périodique de la purge des temporaires.
+     * - Démarre 60s après le lancement de l’application (initialDelay).<br>
+     * - Se ré-exécute après un délai fixe entre la fin et le début suivant (fixedDelay).
+     * En cas d’exception, le job continue silencieusement.
      */
     @Scheduled(
             initialDelay = 60_000,

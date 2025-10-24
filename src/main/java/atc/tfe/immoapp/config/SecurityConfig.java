@@ -21,21 +21,42 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import atc.tfe.immoapp.filter.JwtRequestFilter;
 
+/**
+ * Configuration principale de la sécurité Spring (Spring Security)
+ * Elle définit :
+ * - {@link PasswordEncoder} (BCrypt) pour le hachage des mots de passe.
+ * - {@link AuthenticationManager} utilisé pour l'authentification basée sur un Provider.
+ * - {@link SecurityFilterChain} CORS, CSRF, endpoints publics, stratégie de session (stateless), et insertion du filtre JWT
+ * - La configuration CORS via un {@link CorsConfigurationSource} explicite.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
 
+    /**
+     * Inject le filtre JWT personnalisé qui valide le token et peuple le SecurityContext.
+     * @param jwtRequestFilter filtre d'analyse et de validation des requêtes JWT
+     */
     public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
         this.jwtRequestFilter = jwtRequestFilter;
     }
 
+    /**
+     * Déclare l'encodeur de mots de passe basé sur BCrypt.
+     * @return un {@link BCryptPasswordEncoder}
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Déclare un {@link AuthenticationManager} basé sur un {@link DaoAuthenticationProvider}.
+     * Le provider s'appuie classiquement sur un {@code UserDetailsService}
+     * @return un {@link ProviderManager} contenant un {@link DaoAuthenticationProvider}
+     */
     @Bean
     public AuthenticationManager authenticationManagerBean() {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
@@ -43,6 +64,20 @@ public class SecurityConfig {
         return new ProviderManager(authenticationProvider);
     }
 
+    /**
+     * Construit la chaine de filtre de sécurité HTTP.
+     * - Désactive CSRF
+     * - Active CORS
+     * - Définit les endpoints publics
+     * - Autorise toutes les requêtes OPTIONS
+     * - Exige l'authentification pour le reste
+     * - Session en mode STATELESS
+     * - Désactive le formLogin
+     * - Ajout le filtre JWT avant le {@link UsernamePasswordAuthenticationFilter}
+     * @param http builder Spring Security
+     * @return la {@link SecurityFilterChain} prête à l'emploi
+     * @throws Exception en cas d'erreur de construction
+     */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -70,16 +105,20 @@ public class SecurityConfig {
         return http.build();
     }
 
-        @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration config = new CorsConfiguration();
-                config.addAllowedOrigin("http://localhost:4200");
-                config.addAllowedMethod("*");
-                config.addAllowedHeader("*");
-                config.setAllowCredentials(true);
-                config.addExposedHeader("Authorization");
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", config);
-                return source;
-        }
+    /**
+     * Source de configuration CORS pour Spring Security
+     * @return un {@link CorsConfigurationSource} mappé sur /**
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+            CorsConfiguration config = new CorsConfiguration();
+            config.addAllowedOrigin("http://localhost:4200");
+            config.addAllowedMethod("*");
+            config.addAllowedHeader("*");
+            config.setAllowCredentials(true);
+            config.addExposedHeader("Authorization");
+            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/**", config);
+            return source;
+    }
 }
