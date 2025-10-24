@@ -272,8 +272,6 @@ export class PropertyInfoComponent {
   property: Property | null = null;
   editMode = signal(false);
 
-  private selectedImage: File | null = null;
-
   propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
   propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
   contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');

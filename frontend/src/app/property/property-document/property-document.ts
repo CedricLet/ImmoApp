@@ -331,7 +331,7 @@ const TREE_DATA: TreeNode[] = [
 
             <!-- Energy type only if relevant -->
             <mat-form-field appearance="outline">
-              <mat-label>Type d'énergie (optional)</mat-label>
+              <mat-label>Type d'énergie (optionnelle)</mat-label>
               <mat-select formControlName="utilityType">
                 <mat-option [value]="null">Aucune</mat-option>
                 <mat-option value="ELECTRICITY">{{ 'ELECTRICITY' | labelFr:'energy' }}</mat-option>
@@ -372,15 +372,15 @@ const TREE_DATA: TreeNode[] = [
             <div class="row gap-1" style="justify-content: space-between;">
               <button mat-button color="primary" (click)="submit()" [disabled]="uploadLoading || aiLoading || !docForm.valid || !selectedFile && !editId">
                 <ng-container *ngIf="!uploadLoading; else saving">
-                    <mat-icon>save</mat-icon> {{ editId ? 'Save changes' : 'Upload' }}
+                    <mat-icon>save</mat-icon> {{ editId ? 'Sauver changements' : 'Enregistrer' }}
                 </ng-container>
                 <ng-template #saving>
                   <mat-progress-spinner diameter="16" mode="indeterminate"></mat-progress-spinner>
-                  &nbsp;Uploading...
+                  &nbsp;Enregistrement...
                 </ng-template>
               </button>
               <button mat-stroked-button (click)="resetForm()">
-                <mat-icon>close</mat-icon> Clear
+                <mat-icon>close</mat-icon> Réinitialiser
               </button>
             </div>
           </form>
@@ -715,20 +715,6 @@ export class PropertyDocumentComponent {
       this.snack.open('Svp sélectionnez un PDF.', 'Fermer');
       return;
     }
-    /*const fd = new FormData();
-    fd.append('file', this.selectedFile);
-    fd.append('category', String(this.docForm.value.category));
-    const u = this.docForm.value.utilityType;
-    if (u) fd.append('utilityType', String(u));
-
-    const tags = (this.formTags || []).filter(Boolean);
-    if (tags.length) fd.append('tags', tags.join(','));
-
-    fd.append('clientFileName', String(this.docForm.value.fileName || this.selectedFile.name));
-
-    if (this.currentPropertyId){
-      fd.append('propertyId', String(this.currentPropertyId));
-    }*/
 
     this.uploadLoading = true;
     this.svc.finalize({
