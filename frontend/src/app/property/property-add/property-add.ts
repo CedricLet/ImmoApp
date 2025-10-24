@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { Validators, ReactiveFormsModule, FormBuilder } from '@angular/forms';
@@ -80,17 +80,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
         </mat-form-field>
 
         <label for="image">Choisir une image</label>
-        <input
-          id="image"
-          type="file"
-          accept="image/*"
-          (change)="onFileSelected($event)"
-        />
+        <input id="image" type="file" accept="image/*" (change)="onFileSelected($event)" />
 
         <mat-form-field>
           <mat-label>Statut de la propriété</mat-label>
           <mat-select formControlName="propertyStatus">
-            @for (propertyStatuss of propertyStatus; track propertyStatuss) {
+            @for (propertyStatuss of filteredStatuses(); track propertyStatuss) {
             <mat-option [value]="propertyStatuss">{{ propertyStatuss }}</mat-option>
             }
           </mat-select>
@@ -140,12 +135,14 @@ export class PropertyAddComponent {
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  // Ajout
-  private selectedImage: File | null = null;
-
   propertyTypes = Object.values(PropertyType).filter((value) => typeof value === 'string');
   propertyStatus = Object.values(PropertyStatus).filter((value) => typeof value === 'string');
   contextRoles = Object.values(ContextRole).filter((value) => typeof value === 'string');
+
+  filteredStatuses = computed(() => {
+    // La propriété ne peut pas être "RENTED" tant que le contrat de lease n'a pas encore été crée
+    return this.propertyStatus.filter((status) => status !== 'RENTED');
+  });
 
   form = this.formBuilder.group({
     street: ['', Validators.required],
@@ -153,9 +150,7 @@ export class PropertyAddComponent {
     city: ['', Validators.required],
     propertyType: ['', Validators.required],
     label: ['', Validators.required],
-    //image: [null, Validators.required],
-    // Ajout champ factice pour gérer la validation/affichage du nom de fichier
-    imageName: [''],
+    image: [null, Validators.required],
     propertyStatus: ['', Validators.required],
     contextRole: ['', Validators.required],
     surface: [0, Validators.min(0)],
@@ -164,43 +159,20 @@ export class PropertyAddComponent {
     yearBuilt: [0, Validators.min(0)],
   });
 
-  // Ne plus patcher un File dans le form, mais un nom de fichier
   onFileSelected(event: any) {
-    const file = event.target?.files?.[0] ?? null;
-    this.selectedImage = file;
-    this.form.patchValue({ imageName: file ? file.name : '' });
+    this.form.patchValue({ image: event.target.files[0] });
   }
 
   onSubmit() {
     const formData = new FormData();
-    const v = this.form.value as any;
-    /*Object.keys(formValue).forEach((key) => {
+    const formValue = this.form.value as any;
+    Object.keys(formValue).forEach((key) => {
       if (key === 'image' && formValue.image) {
         formData.append(key, formValue.image); // fichier
       } else {
         formData.append(key, formValue[key]); // valeur du champ, pas tout l'objet
       }
-    });*/
-
-    // ADDED: joindre le fichier réel ici
-    if (this.selectedImage){
-      formData.append('image', this.selectedImage);
-    }
-
-    // CHANGED: on envoie les autres champs normalement
-    formData.append('street', v.street);
-    formData.append('postalCode', v.postalCode);
-    formData.append('city', v.city);
-    formData.append('propertyType', v.propertyType);
-    formData.append('label', v.label);
-    formData.append('propertyStatus', v.propertyStatus);
-    formData.append('contextRole', v.contextRole);
-    formData.append('surface', v.surface ?? '');
-    formData.append('notes', v.notes ?? '');
-    formData.append('pebScore', v.pebScore ?? '');
-    formData.append('yearBuilt', v.yearBuilt ?? '');
-
-
+    });
 
     this.http.post(`${API_URL}/property/add`, formData).subscribe({
       next: () => {
