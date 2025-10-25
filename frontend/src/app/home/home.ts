@@ -1,11 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-home',
-  imports: [MatButtonModule, MatCardModule, MatIconModule],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterModule],
   styles: [
     `
       main {
@@ -47,8 +48,10 @@ import { MatIconModule } from '@angular/material/icon';
       >
       <span class="mb-3" style="font-size: 1.2rem;">communicationavec vos locataires.</span>
       <div style="display: flex; gap: 1rem;">
-        <button matButton="filled" color="primary">Commencer gratuitement</button>
-        <button matButton="outlined" color="primary">Se connecter</button>
+        <button [routerLink]="'/signup'" matButton="filled" color="primary">
+          Commencer gratuitement
+        </button>
+        <button [routerLink]="'/signup'" matButton="outlined" color="primary">Se connecter</button>
       </div>
 
       <div class="card-container mt-6">
