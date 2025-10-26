@@ -154,7 +154,7 @@ public class DocumentService {
         if (currentUser == null) throw new IllegalStateException("Unauthenticated User");
 
         String chosenName = (clientFileName != null && !clientFileName.isBlank()) ? clientFileName.trim() : "document.pdf";
-        if (!chosenName.toLowerCase().endsWith(".pdf")) chosenName = chosenName+".pdf";
+        if (!chosenName.toLowerCase().endsWith(".pdf")) chosenName += ".pdf";
 
         Path finalPath;
         try {
@@ -284,7 +284,7 @@ public class DocumentService {
 
         // Entité
         Document d = new Document();
-        d.setFileName(file.getOriginalFilename());
+        d.setFileName(chosenName);
         d.setMimeType(stored.mime());
         d.setSizeBytes(stored.size());
         d.setStoragePath(stored.path());
@@ -358,12 +358,13 @@ public class DocumentService {
      * @param category nouvelle catégorie
      * @param utilityType nouvelle utilité
      * @param tags liste de tags
+     * @param newFileName nom du fichier
      * @return DTO mis à jour
      * @throws NoSuchElementException si doc absent
      * @throws SecurityException si l’utilisateur courant n’est pas l’uploader
      */
     @Transactional
-    public DocumentDTO updateMetadata(Long id, DocumentCategory category, UtilityType utilityType, List<String> tags){
+    public DocumentDTO updateMetadata(Long id, DocumentCategory category, UtilityType utilityType, List<String> tags, String newFileName){
         User current = currentUserService.getCurrentUser();
         Document d = documentRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Document not found"));
 
@@ -372,6 +373,27 @@ public class DocumentService {
             throw new SecurityException("Forbidden");
         }
 
+        if (newFileName != null && !newFileName.isBlank()) {
+            String targetName = newFileName.trim();
+            if (!targetName.toLowerCase().endsWith(".pdf")) {
+                targetName += ".pdf";
+            }
+
+            boolean physicalHasReadableName =
+                    d.getStoragePath() != null
+                    && d.getFileName() != null
+                    && d.getStoragePath().toLowerCase().endsWith(("/" + d.getFileName().toLowerCase()));
+
+            if (physicalHasReadableName) {
+                try {
+                    Path updated = storage.renameKeepingDirectory(d.getStoragePath(), targetName);
+                    d.setStoragePath(updated.toString().replace("\\", "/"));
+                }catch (IOException e){
+                    throw new IllegalStateException("Cannot rename file on disk: " + e.getMessage(), e);
+                }
+            }
+            d.setFileName(targetName);
+        }
         d.setDocumentCategory(category);
         d.setUtilityType(utilityType);
         d.setUpdatedAt(Instant.now());

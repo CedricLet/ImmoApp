@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, HostListener, inject } from '@angular/core';
+import { Component, ViewChild, ElementRef, HostListener, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, FormControl } from '@angular/forms';
@@ -260,7 +260,7 @@ const TREE_DATA: TreeNode[] = [
                 <mat-icon>picture_as_pdf</mat-icon>
                 <div class="col">
                   <span class="muted">
-                    {{ d.fileName }} • {{ d.documentCategory | labelFr:'category'}} • {{ (d.sizeBytes/1024/1024) | number:'1.0-2' }} MB • {{ d.uploadedAt | date:'medium' }}
+                    {{ d.fileName }} • {{ d.documentCategory | labelFr:'category'}} • {{ (d.sizeBytes/1024/1024) | number:'1.0-2' }} MB • {{ d.uploadedAt | date:'yy-MM-dd HH:mm:ss':'Europe/Brussels' }}
                     <ng-container *ngIf="d.utilityType">• {{ d.utilityType | labelFr:'energy' }}</ng-container>
                   </span>
                   <div class="row chip-bar muted">
@@ -506,7 +506,7 @@ export class PropertyDocumentComponent {
       documentCategory: (this.categoryCtrl.value || '') as DocumentCategory | '',
       utilityType: this.currentUtilityType || '', // set via tree selection (voir selectNode)
       tags: this.selectedTags,
-      propertyID: this.currentPropertyId ?? undefined
+      propertyId: this.currentPropertyId ?? undefined
     };
 
     this.svc.listDocuments(params).subscribe({
@@ -541,7 +541,7 @@ export class PropertyDocumentComponent {
       documentCategory: (this.categoryCtrl.value || '') as DocumentCategory | '',
       utilityType: this.currentUtilityType || '',
       tags: this.selectedTags,
-      propertyID: this.currentPropertyId ?? undefined
+      propertyId: this.currentPropertyId ?? undefined
     };
     this.pageIndex = 0;
     this.svc.listDocuments(params).subscribe({
@@ -684,6 +684,7 @@ export class PropertyDocumentComponent {
       category: d.documentCategory,
       utilityType: d.utilityType ?? null,
       tags: d.tags || [],
+      fileName: d.fileName ?? ''
     });
     // scroll to form
     setTimeout(() => this.rightPanel?.nativeElement.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -696,6 +697,7 @@ export class PropertyDocumentComponent {
         documentCategory: this.docForm.value.category as DocumentCategory,
         utilityType: (this.docForm.value.utilityType ?? null) as any,
         tags: this.formTags,
+        fileName: String(this.docForm.value.fileName || '').trim() || undefined,
       };
       this.uploadLoading = true;
       this.svc.updateDocument(this.editId, body).subscribe({
@@ -723,6 +725,7 @@ export class PropertyDocumentComponent {
       utilityType: this.docForm.value.utilityType || undefined,
       tags: (this.formTags || []).filter(Boolean),
       clientFileName: String(this.docForm.value.fileName || this.selectedFile?.name),
+      propertyId: this.currentPropertyId!
 
     }).subscribe({
       next: () => {

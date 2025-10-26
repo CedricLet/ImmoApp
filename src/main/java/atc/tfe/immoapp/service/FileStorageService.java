@@ -68,7 +68,8 @@ public class FileStorageService {
         Path dir = Paths.get(tmpDir);
         Files.createDirectories(dir);
 
-        if (file.getSize() > maxMB) {
+        long sizeBytes = file.getSize();
+        if (sizeBytes > (long) maxMB * 1024L * 1024L) {
             throw new IOException("File is too large");
         }
 
@@ -264,6 +265,32 @@ public class FileStorageService {
         }catch (Exception ignored){
             // ignored
         }
+    }
+
+    /**
+     * Récupère le chemin avec le nouveau nom du fichier. Remplacer l'ancien par le nouveau.
+     * @param currentPathStr chemin actuel
+     * @param newFileName nouveau nom du fichier
+     * @return nouvelle méta données du fichier
+     * @throws IOException exception interruption de changement/action
+     */
+    public Path renameKeepingDirectory(String currentPathStr, String newFileName) throws IOException {
+        if (currentPathStr == null || currentPathStr.isBlank()) throw new IllegalArgumentException("Current path is empty");
+        Path currentPath = Path.of(currentPathStr).normalize();
+        if (!Files.exists(currentPath) || !Files.isRegularFile(currentPath)) {
+            throw new IOException("Source file not found: " + currentPath);
+        }
+        if (newFileName == null || newFileName.isBlank()) throw new IllegalArgumentException("New file name is empty");
+
+        if (!newFileName.toLowerCase().endsWith(".pdf")) newFileName += ".pdf";
+
+        Path parent = currentPath.getParent();
+        if (parent == null) throw new IOException("No parent directory for: " + currentPath);
+
+        Path target = parent.resolve(newFileName).normalize();
+        if (!target.getParent().equals(parent)) throw new IOException("Invalid rename target");
+
+        return Files.move(currentPath, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public record TempStored(String tempId, String path, String mime, long size){}

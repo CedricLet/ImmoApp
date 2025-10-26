@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import atc.tfe.immoapp.domain.Address;
 import atc.tfe.immoapp.domain.City;
+import atc.tfe.immoapp.domain.Cost;
 import atc.tfe.immoapp.domain.Country;
 import atc.tfe.immoapp.domain.Lease;
 import atc.tfe.immoapp.domain.Property;
@@ -43,6 +44,7 @@ import atc.tfe.immoapp.dto.mapper.PropertyInfoResponse;
 import atc.tfe.immoapp.dto.mapper.PropertyListDTO;
 import atc.tfe.immoapp.repository.AddressRepository;
 import atc.tfe.immoapp.repository.CityRepository;
+import atc.tfe.immoapp.repository.CostRepository;
 import atc.tfe.immoapp.repository.CountryRepository;
 import atc.tfe.immoapp.repository.LeaseRepository;
 import atc.tfe.immoapp.repository.PropertyRepository;
@@ -62,9 +64,10 @@ public class PropertyController {
     private final AddressRepository addressRepository;
     private final UserPropertyRepository userPropertyRepository;
     private final LeaseRepository leaseRepository;
+    private final CostRepository costRepository;
 
 
-    public PropertyController(PropertyRepository propertyRepository, UserRepository userRepository, CountryRepository countryRepository, CityRepository cityRepository, AddressRepository addressRepository, UserPropertyRepository userPropertyRepository, LeaseRepository leaseRepository) {
+    public PropertyController(PropertyRepository propertyRepository, UserRepository userRepository, CountryRepository countryRepository, CityRepository cityRepository, AddressRepository addressRepository, UserPropertyRepository userPropertyRepository, LeaseRepository leaseRepository, CostRepository costRepository) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.countryRepository = countryRepository;
@@ -72,6 +75,7 @@ public class PropertyController {
         this.addressRepository = addressRepository;
         this.userPropertyRepository = userPropertyRepository;
         this.leaseRepository = leaseRepository;
+        this.costRepository = costRepository;
     }
 
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -326,6 +330,12 @@ public class PropertyController {
 
         if (!leases.isEmpty()) {
             leaseRepository.deleteAllByProperty(property);
+        }
+
+        List<Cost> costs = costRepository.findAllByProperty(property);
+
+        if (!costs.isEmpty()) {
+            costRepository.deleteAllByProperty(property);
         }
 
         if (property.getImagePath() != null) {

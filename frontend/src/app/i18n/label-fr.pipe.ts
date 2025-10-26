@@ -1,6 +1,8 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { CATEGORY_LABEL_FR, ENERGY_LABEL_FR, TAG_LABEL_FR, TREE_LABEL_FR } from './document-labels';
 import { DocumentCategory } from '../property/document';
+import { COST_TYPE_LABEL_FR, COST_CATEGORY_LABEL_FR} from './cost-labels';
+import { CostType, CostCategory} from '../cost/costType';
 
 import { USER_TYPE_LABEL_FR, PROPERTY_TYPE_LABEL_FR, PROPERTY_STATUS_LABEL_FR, CONTEXT_ROLE_LABEL_FR } from './app-labels';
 import { UserType } from '../user/user';
@@ -18,7 +20,9 @@ type Kind =
   | 'userType'
   | 'propertyType'
   | 'propertyStatus'
-  | 'contextRole';
+  | 'contextRole'
+  | 'costType'
+  | 'costCategory';
 
 @Pipe({ name: 'labelFr', standalone: true })
 export class LabelFrPipe implements PipeTransform {
@@ -54,6 +58,16 @@ export class LabelFrPipe implements PipeTransform {
     if (kind === 'contextRole') {
       const key = typeof value === 'number' ? (ContextRole as any)[value] : String(value);
       return CONTEXT_ROLE_LABEL_FR[key as keyof typeof ContextRole] ?? String(value);
+    }
+
+    if (kind === 'costType') {
+      const key = typeof value === 'number' ? (CostType as any)[value] : String(value);
+      return COST_TYPE_LABEL_FR[key as keyof typeof CostType] ?? String(value);
+    }
+
+    if (kind === 'costCategory') {
+      const key = typeof value === 'number' ? (CostCategory as any)[value] : String(value);
+      return COST_CATEGORY_LABEL_FR[key as keyof typeof CostCategory] ?? String(value);
     }
 
     return String(value);
