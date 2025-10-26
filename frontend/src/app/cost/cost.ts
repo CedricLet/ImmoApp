@@ -25,6 +25,7 @@ import {
 } from '@angular/material/dialog';
 import { ModifyCostComponent } from './modify-cost';
 import { CommonModule } from '@angular/common';
+import {LabelFrPipe} from '../i18n/label-fr.pipe';
 
 @Component({
   selector: 'app-cost',
@@ -42,6 +43,7 @@ import { CommonModule } from '@angular/common';
     MatPaginator,
     MatTableModule,
     CommonModule,
+    LabelFrPipe,
   ],
   styles: [``],
   template: `
@@ -81,13 +83,13 @@ import { CommonModule } from '@angular/common';
           <!-- costCategory Column -->
           <ng-container matColumnDef="costCategory">
             <th mat-header-cell *matHeaderCellDef>Catégorie de facture</th>
-            <td mat-cell *matCellDef="let element">{{ element?.costCategory }}</td>
+            <td mat-cell *matCellDef="let element">{{ element?.costCategory | labelFr:'costCategory' }}</td>
           </ng-container>
 
           <!-- costType Column -->
           <ng-container matColumnDef="costType">
             <th mat-header-cell *matHeaderCellDef>Type de facture</th>
-            <td mat-cell *matCellDef="let element">{{ element?.costType }}</td>
+            <td mat-cell *matCellDef="let element">{{ element?.costType | labelFr:'costType' }}</td>
           </ng-container>
 
           <!-- Currency Column -->
@@ -105,7 +107,7 @@ import { CommonModule } from '@angular/common';
           <!-- Date Column -->
           <ng-container matColumnDef="date">
             <th mat-header-cell *matHeaderCellDef>Date</th>
-            <td mat-cell *matCellDef="let element">{{ element?.date }}</td>
+            <td mat-cell *matCellDef="let element">{{ element?.date | date:'dd-MM-yyyy':'Europe/Brussels' }}</td>
           </ng-container>
 
           <!-- Notes Column -->
@@ -151,8 +153,10 @@ import { CommonModule } from '@angular/common';
       </div>
 
       <form class="column gap-1" [formGroup]="form" (ngSubmit)="onSubmit()">
+        <!--
         <label for="document">Choisir un document PDF (facultatif)</label>
         <input id="document" type="file" accept=".pdf" (change)="onFileSelected($event)" />
+        -->
 
         <mat-form-field>
           <mat-label>Libellé</mat-label>
@@ -166,7 +170,7 @@ import { CommonModule } from '@angular/common';
           <mat-label>Catégorie de la facture</mat-label>
           <mat-select formControlName="costCategory">
             @for (costCategory of costCategories; track costCategory) {
-            <mat-option [value]="costCategory">{{ costCategory }}</mat-option>
+            <mat-option [value]="costCategory">{{ costCategory | labelFr:'costCategory' }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -207,7 +211,7 @@ import { CommonModule } from '@angular/common';
           <mat-label>Type de facture</mat-label>
           <mat-select formControlName="costType">
             @for (costType of costTypes; track costType) {
-            <mat-option [value]="costType">{{ costType }}</mat-option>
+            <mat-option [value]="costType">{{ costType | labelFr:'costType' }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -218,7 +222,7 @@ import { CommonModule } from '@angular/common';
         </mat-form-field>
 
         <button [disabled]="form.invalid" matButton="filled" color="primary">
-          Ajouter la facture
+          Ajouter le coût
         </button>
       </form>
     </div>

@@ -1,0 +1,175 @@
+# ImmoApp
+
+Gestion immobilière (biens, documents, coûts, comptes) avec import de PDF enrichi par IA.
+
+## ⚙️ Prérequis & configuration (à faire **avant** de lancer Spring)
+
+### 1) Créer la base de données
+
+* Crée **une base vide** nommée `ImmoApp` dans MySQL/MariaDB.
+* **N’ajoute aucune table** (Flyway s’en charge).
+* Encodage conseillé : `utf8mb4` et collation `utf8mb4_unicode_ci`.
+
+```sql
+CREATE DATABASE ImmoApp
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+```
+
+### 2) C’est quoi Flyway ?
+
+[Flyway](https://flywaydb.org/) est un outil de **migration de schéma**.
+Il exécute automatiquement les scripts SQL dans `src/main/resources/db/migration` pour **créer/mettre à jour** les tables au démarrage de l’application, dans le bon ordre et de façon versionnée.
+
+> ⚠️ **Ne lance pas Spring** tant que la configuration ci-dessous n’est pas faite, sinon Flyway échouera à se connecter et ne pourra pas créer le schéma.
+
+### 3) Configurer l’accès à la DB et les secrets
+
+Le projet charge `application.properties` (et **optionnellement** `src/main/resources/env.properties` si présent) :
+
+```
+spring.config.import=optional:file:src/main/resources/env.properties
+```
+
+Tu peux soit :
+
+* **tout mettre dans `application.properties`**,
+* soit créer `src/main/resources/env.properties` pour y mettre tes valeurs locales (recommandé pour ne pas committer tes secrets).
+
+Exemple minimal (à adapter) :
+
+```properties
+# --- Database ---
+spring.datasource.url=jdbc:mysql://localhost:3306/ImmoApp?useUnicode=true&characterEncoding=utf8&connectionTimeZone=UTC
+spring.datasource.username=ton_user
+spring.datasource.password=ton_password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# --- JWT ---
+# **Obligatoire** : secret HMAC long et aléatoire
+app.jwt.secret=change_me_with_a_random_32_bytes_min_secret
+app.jwt.exp-minutes=10080
+
+# --- OpenAI (déjà présent dans le projet) ---
+spring.ai.openai.api-key=ta_clef_ou_la_variable_env
+spring.ai.openai.chat.options.model=gpt-5-nano
+```
+
+#### Choisir un bon secret JWT
+
+* Utilise **au minimum 32 octets (256 bits)** d’entropie (recommandé : 64 octets).
+* Exemples pour générer un secret :
+
+  * macOS/Linux : `openssl rand -base64 32`
+  * Node.js : `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+
+> Plus le secret est long et aléatoire, mieux c’est. Évite les mots de passe “lisibles”.
+
+### 4) Comptes de test
+
+Deux utilisateurs sont déjà présents :
+
+* **[admin@immoapp.local](mailto:admin@immoapp.local)** → `admin123`
+* **[owner@immoapp.local](mailto:owner@immoapp.local)** → `owner123`
+
+> Tu peux te connecter avec ces comptes pour tester l’app de bout en bout.
+
+---
+
+## ▶️ Lancer l’application
+
+### Backend (Spring Boot)
+
+* Java 17+ recommandé.
+* Depuis l’IDE ou en CLI :
+
+  * `./mvnw spring-boot:run` ou exécuter la classe `ImmoAppApplication`.
+* Au premier démarrage, **Flyway** crée/évolue le schéma dans la DB `ImmoApp`.
+
+### Frontend (Angular)
+
+* Node 18+ recommandé.
+* `cd frontend` (si ton code Angular est dans un dossier dédié)
+* `npm install`
+* `npm start` ou `ng serve`
+* Ouvre [http://localhost:4200](http://localhost:4200)
+
+---
+
+## 🧭 Ce que l’application permet de faire
+
+* **Authentification & rôles**
+  Connexion/inscription.
+
+* **Profil & sécurité**
+  Modifier le profil, changer le mot de passe, déconnexion.
+
+* **Biens immobiliers**
+  Créer/éditer/supprimer des biens, voir leur statut (loué, en travaux, etc.).
+  Ajouter un locataire au bien. Le bien doit être FOR_RENT pour pouvoir ajouter le locataire.
+
+* **Documents**
+
+  * **Upload PDF** (drag & drop, sélection ou collage depuis le presse-papier).
+  * **Analyse IA automatique** du PDF **à l’import** :
+
+    * proposition de **catégorie** (ex. Facture, Contrat…),
+    * **type d’énergie** éventuel (électricité, gaz…),
+    * **tags** pertinents,
+    * **nom de fichier suggéré** (kebab-case `.pdf`).
+  * Filtres par **catégorie**, **énergie**, **tags**, **recherche texte**, **bien**.
+  * **Arborescence** (Énergie → Électricité/Gaz/Eau…) côté gauche.
+  * **Édition** des métadonnées (catégorie/énergie/tags/nom de fichier).
+  * **Suppression** d’un document.
+  * Les PDF sont stockés côté serveur (dossiers `uploads/tmp` puis `uploads/docs`), avec une **limite de taille configurable**.
+
+* **Coûts / Factures**
+
+  * Ajouter, lister, rechercher et **modifier** des coûts (revenus/dépenses).
+  * Catégories (électricité, gaz, taxes, loyer, travaux, etc.) et **types** (dépense / revenu).
+  * **Comptabilité** synthétique : total revenus, total dépenses, solde.
+  * Pagination, recherche, notes.
+
+* **Internationalisation (labels)**
+  Les enums principaux sont traduits côté UI (ex. catégories, énergies, rôles…).
+
+* **Horodatage & fuseau horaire**
+
+  * Stockage en **UTC** côté serveur, conversion à l’affichage en **Europe/Brussels**.
+  * Évite les décalages (heure d’été/hiver).
+
+---
+
+## 📁 Répertoires d’upload (backend)
+
+* `uploads/tmp` : zone **temporaire** pour les fichiers en “stage” (pré-analyse IA).
+
+  * Nettoyage périodique configurable (TTL).
+* `uploads/docs` : zone **finale** après “finalize”.
+
+Les limites de taille sont configurables dans `application.properties` :
+
+```properties
+app.upload.max-mb=25
+spring.servlet.multipart.max-file-size=25MB
+spring.servlet.multipart.max-request-size=30MB
+```
+
+---
+
+## ❗️Dépannage rapide
+
+* **Spring démarre mais aucune table n’apparaît** → Vérifie l’URL/identifiants DB, que la base `ImmoApp` existe, et les logs Flyway.
+* **Erreurs de fuseau horaire MySQL** → Ajoute `connectionTimeZone=UTC` dans l’URL JDBC (ou `serverTimezone=UTC` selon le driver).
+* **JWT invalide** → Secret trop court ou variable manquante.
+* **Upload refusé** → PDF requis + taille ≤ `app.upload.max-mb`.
+
+---
+
+## 🔒 Sécurité & bonnes pratiques
+
+* Ne commite **jamais** tes secrets réels (`app.jwt.secret`, clés API).
+* Utilise `env.properties` local pour les valeurs sensibles.
+* Garde les dépendances à jour.
+
+---

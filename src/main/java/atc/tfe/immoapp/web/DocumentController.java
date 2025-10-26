@@ -120,7 +120,7 @@ public class DocumentController {
 
     @PutMapping("/{id}")
     public DocumentDTO update(@PathVariable Long id, @RequestBody DocumentUpdateRequest req){
-        return documentService.updateMetadata(id, req.documentCategory(), req.utilityType(), req.tags());
+        return documentService.updateMetadata(id, req.documentCategory(), req.utilityType(), req.tags(), req.fileName());
     }
 
     @DeleteMapping("/{id}")

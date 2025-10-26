@@ -87,6 +87,7 @@ import { filter } from 'rxjs';
           <button mat-button [routerLink]="'/property/cost/' + propertyId()">
             Dépenses/Revenues
           </button>
+          <button mat-button [routerLink]="'/property/document/' + propertyId()"> Documents </button>
         </div>
       </mat-toolbar>
       }
@@ -102,12 +103,12 @@ export class HeaderComponent {
   // Vérifie si on est sur /property/info/:id ou /property/cost/:id
   isPropertyDetailRoute = computed(() => {
     const url = this.currentUrl();
-    return /^\/property\/(info|cost)\/\d+$/.test(url);
+    return /^\/property\/(info|cost|document)\/\d+$/.test(url);
   });
 
   // Extrait l’ID de la propriété courante
   propertyId = computed(() => {
-    const match = this.currentUrl().match(/\/(\d+)$/);
+    const match = this.currentUrl().match(/\/(\d+)(?:$|[?#])/);
     return match ? match[1] : null;
   });
 

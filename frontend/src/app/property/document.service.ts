@@ -68,8 +68,8 @@ export class DocumentService {
     category: string;
     utilityType?: string | null;
     tags?: string[];
-    propertyId?: number;
     clientFileName?: string;
+    propertyId?: number;
   }) {
     const params: any = {
       tempId: body.tempId,

@@ -8,6 +8,7 @@ import java.util.List;
 public record DocumentUpdateRequest(
         DocumentCategory documentCategory,
         UtilityType utilityType,
-        List<String> tags
+        List<String> tags,
+        String fileName
 ) {
 }

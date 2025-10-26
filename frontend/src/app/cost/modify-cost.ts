@@ -23,6 +23,7 @@ import {
   MatDialogRef,
   MatDialogTitle,
 } from '@angular/material/dialog';
+import {LabelFrPipe} from '../i18n/label-fr.pipe';
 
 @Component({
   selector: 'app-modify-cost',
@@ -40,6 +41,7 @@ import {
     MatTableModule,
     MatDialogActions,
     MatDialogContent,
+    LabelFrPipe,
   ],
   styles: [``],
   template: `
@@ -59,7 +61,7 @@ import {
             <mat-label>Catégorie de la facture</mat-label>
             <mat-select formControlName="costCategory">
               @for (costCategory of costCategories; track costCategory) {
-              <mat-option [value]="costCategory">{{ costCategory }}</mat-option>
+              <mat-option [value]="costCategory">{{ costCategory | labelFr:'costCategory' }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
@@ -100,7 +102,7 @@ import {
             <mat-label>Type de facture</mat-label>
             <mat-select formControlName="costType">
               @for (costType of costTypes; track costType) {
-              <mat-option [value]="costType">{{ costType }}</mat-option>
+              <mat-option [value]="costType">{{ costType | labelFr:'costType' }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
