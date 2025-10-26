@@ -1,29 +1,22 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelect, MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatRadioModule } from '@angular/material/radio';
-import { FormsModule } from '@angular/forms';
-import {
-  Validators,
-  ReactiveFormsModule,
-  FormBuilder,
-  AbstractControl,
-  ValidationErrors,
-  ValidatorFn,
-} from '@angular/forms';
-import { ContextRole, Property, PropertyStatus, PropertyType } from '../property';
-import { ActivatedRoute, Router } from '@angular/router';
-import { PropertyService } from '../property.service';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { HttpClient } from '@angular/common/http';
-import { API_URL } from '../../constants';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { LeaseComponent } from '../../lease/lease';
+import {Component, computed, inject, signal} from '@angular/core';
+import {MatDividerModule} from '@angular/material/divider';
+import {MatInputModule} from '@angular/material/input';
+import {MatSelectModule} from '@angular/material/select';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatRadioModule} from '@angular/material/radio';
+import {FormBuilder, FormsModule, ReactiveFormsModule, Validators,} from '@angular/forms';
+import {ContextRole, Property, PropertyStatus, PropertyType} from '../property';
+import {ActivatedRoute, Router} from '@angular/router';
+import {PropertyService} from '../property.service';
+import {MatDatepickerModule} from '@angular/material/datepicker';
+import {MatNativeDateModule} from '@angular/material/core';
+import {HttpClient} from '@angular/common/http';
+import {API_URL} from '../../constants';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import {LeaseComponent} from '../../lease/lease';
+import { LabelFrPipe } from '../../i18n/label-fr.pipe';
 
 @Component({
   selector: 'app-property-info',
@@ -41,6 +34,7 @@ import { LeaseComponent } from '../../lease/lease';
     MatDatepickerModule,
     MatNativeDateModule,
     LeaseComponent,
+    LabelFrPipe
   ],
   styles: [``],
   template: `
@@ -108,12 +102,12 @@ import { LeaseComponent } from '../../lease/lease';
                 <mat-label>Type de propriété</mat-label>
                 <mat-select formControlName="propertyType">
                   @for (propertyType of propertyTypes; track propertyType) {
-                  <mat-option [value]="propertyType">{{ propertyType }}</mat-option>
+                  <mat-option [value]="propertyType">{{ propertyType | labelFr:'propertyType' }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
               } @else {
-              <span>{{ property?.propertyType }}</span>
+              <span>{{ property?.propertyType | labelFr:'propertyType' }}</span>
               }
 
               <br />
@@ -124,12 +118,12 @@ import { LeaseComponent } from '../../lease/lease';
                 <mat-label>Statut</mat-label>
                 <mat-select formControlName="propertyStatus">
                   @for (propertyStatuss of filteredStatuses(); track propertyStatuss) {
-                  <mat-option [value]="propertyStatuss">{{ propertyStatuss }}</mat-option>
+                  <mat-option [value]="propertyStatuss">{{ propertyStatuss | labelFr:'propertyStatus'}}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
               } @else {
-              <span>{{ property?.propertyStatus }}</span>
+              <span>{{ property?.propertyStatus | labelFr:'propertyStatus' }}</span>
               }
 
               <br />
@@ -140,12 +134,12 @@ import { LeaseComponent } from '../../lease/lease';
                 <mat-label>Gestionnaire</mat-label>
                 <mat-select formControlName="contextRole">
                   @for (contextRole of contextRoles; track contextRole) {
-                  <mat-option [value]="contextRole">{{ contextRole }}</mat-option>
+                  <mat-option [value]="contextRole">{{ contextRole | labelFr:'contextRole' }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
               } @else {
-              <span>{{ property?.contextRole }}</span>
+              <span>{{ property?.contextRole | labelFr:'contextRole' }}</span>
               }
 
               <br />

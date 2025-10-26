@@ -1,25 +1,18 @@
-import { Component, inject, signal } from '@angular/core';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatRadioModule } from '@angular/material/radio';
-import { FormGroup, FormsModule } from '@angular/forms';
-import {
-  Validators,
-  ReactiveFormsModule,
-  FormBuilder,
-  AbstractControl,
-  ValidationErrors,
-  ValidatorFn,
-} from '@angular/forms';
-import { UserService } from '../user/user.service';
-import { User } from '../user/user';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { HttpClient } from '@angular/common/http';
-import { API_URL } from '../constants';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import {Component, inject, signal} from '@angular/core';
+import {MatDividerModule} from '@angular/material/divider';
+import {MatInputModule} from '@angular/material/input';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatRadioModule} from '@angular/material/radio';
+import {FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators} from '@angular/forms';
+import {UserService} from '../user/user.service';
+import {User} from '../user/user';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {HttpClient} from '@angular/common/http';
+import {API_URL} from '../constants';
+import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
+import { LabelFrPipe } from '../i18n/label-fr.pipe';
 
 @Component({
   selector: 'app-profile',
@@ -35,6 +28,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
     FormsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    LabelFrPipe
   ],
   styles: [``],
   template: `
@@ -103,7 +97,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
               <br />
 
               <label for="">Type: </label>
-              <span>{{ user?.userType }}</span>
+              <span>{{ user?.userType | labelFr:'userType' }}</span>
             </form>
           </div>
           @if (editMode()) {

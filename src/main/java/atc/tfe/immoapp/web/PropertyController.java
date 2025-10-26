@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +52,7 @@ import atc.tfe.immoapp.repository.UserPropertyRepository;
 import atc.tfe.immoapp.repository.UserRepository;
 import jakarta.validation.Valid;
 
+@Slf4j
 @RestController
 @RequestMapping("/property")
 public class PropertyController {
@@ -235,7 +237,7 @@ public class PropertyController {
                 try {
                     Files.deleteIfExists(oldImagePath);
                 } catch (IOException e) {
-                    System.err.println("Impossible de supprimer l'ancienne image: " + e.getMessage());
+                    log.debug("Impossible de supprimer l'ancienne image: " + e.getMessage());
                 }
             }
         
@@ -341,7 +343,7 @@ public class PropertyController {
             try {
                 Files.deleteIfExists(imagePath);
             } catch (IOException e) {
-                System.err.println("Erreur lors de la suppression de l'image : " + e.getMessage());
+                log.debug("Erreur lors de la suppression de l'image : " + e.getMessage());
             }
         }
 

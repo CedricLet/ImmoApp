@@ -1,26 +1,18 @@
-import { Component, ViewChild, inject, signal } from '@angular/core';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatRadioModule } from '@angular/material/radio';
-import { FormsModule } from '@angular/forms';
-import {
-  Validators,
-  ReactiveFormsModule,
-  FormBuilder,
-  AbstractControl,
-  ValidationErrors,
-  ValidatorFn,
-} from '@angular/forms';
-import { PageEvent, MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { PropertyService } from '../property.service';
-import { HttpClient } from '@angular/common/http';
-import { Properties } from '../property';
-import { Router } from '@angular/router';
-import { RouterModule } from '@angular/router';
-import { API_URL } from '../../constants';
+import {Component, inject, ViewChild} from '@angular/core';
+import {MatDividerModule} from '@angular/material/divider';
+import {MatInputModule} from '@angular/material/input';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatRadioModule} from '@angular/material/radio';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatPaginator, MatPaginatorModule, PageEvent} from '@angular/material/paginator';
+import {PropertyService} from '../property.service';
+import {HttpClient} from '@angular/common/http';
+import {Properties} from '../property';
+import {Router, RouterModule} from '@angular/router';
+import {API_URL} from '../../constants';
+import { LabelFrPipe} from '../../i18n/label-fr.pipe';
 
 @Component({
   selector: 'app-property-list',
@@ -36,6 +28,7 @@ import { API_URL } from '../../constants';
     FormsModule,
     MatPaginatorModule,
     RouterModule,
+    LabelFrPipe
   ],
   styles: [``],
   template: `
@@ -75,7 +68,7 @@ import { API_URL } from '../../constants';
           </div>
 
           }
-          <span>{{ property.propertyType }}</span>
+          <span>{{ property.propertyType | labelFr:'propertyType' }}</span>
           <span>{{ property.label }}, {{ property.city }}</span>
           <button
             [routerLink]="'/property/info/' + property.id"

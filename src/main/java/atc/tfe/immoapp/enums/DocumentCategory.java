@@ -3,7 +3,7 @@ package atc.tfe.immoapp.enums;
 public enum DocumentCategory {
     CONTRACT,
     INVOICE,
-    TAKS,
+    TAX,
     WORK,
     INSURANCE,
     PHOTO,
